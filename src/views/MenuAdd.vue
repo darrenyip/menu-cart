@@ -57,7 +57,7 @@
 
       <el-table :data="dishList" style="width: 100%" :row-style="{ height: 'auto' }">
         <el-table-column type="index" label="序号" width="80" align="center"></el-table-column>
-        <el-table-column label="菜品名称" width="250">
+        <el-table-column label="菜品名称" width="200">
           <template #default="scope">
             <el-autocomplete
               v-model="scope.row.name"
@@ -66,6 +66,18 @@
               style="width: 100%"
               @select="(item) => selectRecipe(scope.$index, item)"
               clearable
+            />
+          </template>
+        </el-table-column>
+        <el-table-column label="份数" width="100" align="center">
+          <template #default="scope">
+            <el-input-number
+              v-model="scope.row.portions"
+              :min="1"
+              :max="999"
+              placeholder="份数"
+              style="width: 100%"
+              size="small"
             />
           </template>
         </el-table-column>
@@ -165,15 +177,16 @@
             {{ scope.row.displayQuantity }} {{ scope.row.displayUnit }}
           </template>
         </el-table-column>
-        <el-table-column prop="dishes" label="用于菜品" min-width="300">
+        <el-table-column prop="dishes" label="用于菜品" min-width="350">
           <template #default="scope">
             <el-tag
               v-for="dish in scope.row.dishes"
-              :key="dish.name"
+              :key="dish.name + dish.portions"
               size="small"
               style="margin-right: 5px; margin-bottom: 5px"
             >
-              {{ dish.name }} ({{ dish.displayQuantity }}{{ dish.displayUnit }})
+              {{ dish.name }} {{ dish.portions }}份 ({{ dish.displayQuantity
+              }}{{ dish.displayUnit }})
             </el-tag>
           </template>
         </el-table-column>
@@ -272,6 +285,9 @@ export default {
       const summary = {}
 
       this.dishList.forEach((dish) => {
+        // 获取菜品份数，默认为1
+        const portions = dish.portions || 1
+
         dish.ingredients.forEach((ingredient) => {
           if (!ingredient.name || !ingredient.quantity) return
 
@@ -285,12 +301,14 @@ export default {
             }
           }
 
-          const quantity = ingredient.quantity
-          summary[key].totalQuantity += quantity
+          // 计算实际需要的数量：原料数量 × 份数
+          const actualQuantity = ingredient.quantity * portions
+          summary[key].totalQuantity += actualQuantity
           summary[key].dishes.push({
             name: dish.name,
-            quantity: quantity,
+            quantity: actualQuantity,
             unit: ingredient.unit || '份',
+            portions: portions, // 记录份数信息
           })
         })
       })
@@ -351,6 +369,7 @@ export default {
     addDish() {
       this.dishList.push({
         name: '',
+        portions: 1, // 默认1份
         ingredients: [{ name: '', quantity: null, unit: '' }],
       })
     },
@@ -397,6 +416,10 @@ export default {
         quantity: ing.quantity,
         unit: ing.unit,
       }))
+      // 保持份数不变，如果没有份数则设为1
+      if (!this.dishList[dishIndex].portions) {
+        this.dishList[dishIndex].portions = 1
+      }
     },
 
     selectIngredient(dishIndex, ingredientIndex, ingredient) {
@@ -424,6 +447,11 @@ export default {
         const dish = this.dishList[i]
         if (!dish.name) {
           this.$message.error(`请输入第${i + 1}个菜品的名称`)
+          return
+        }
+
+        if (!dish.portions || dish.portions < 1) {
+          this.$message.error(`请输入第${i + 1}个菜品的正确份数`)
           return
         }
 

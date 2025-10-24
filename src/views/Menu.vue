@@ -52,12 +52,14 @@
           align="center"
         ></el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="150"></el-table-column>
-        <el-table-column label="操作" fixed="right" width="180">
+        <el-table-column label="操作" fixed="right" width="200">
           <template #default="scope">
-            <el-button size="small" text>查看</el-button>
-            <el-button size="small" text>编辑</el-button>
-            <el-button size="small" text>复制</el-button>
-            <el-button size="small" text style="color: #f56c6c">删除</el-button>
+            <el-button size="small" text @click="viewMenu(scope.row)">查看</el-button>
+            <el-button size="small" text @click="editMenu(scope.row)">编辑</el-button>
+            <el-button size="small" text @click="copyMenu(scope.row)">复制</el-button>
+            <el-button size="small" text style="color: #f56c6c" @click="deleteMenu(scope.row)"
+              >删除</el-button
+            >
           </template>
         </el-table-column>
       </el-table>
@@ -93,7 +95,7 @@ export default {
       dateRange: [],
       currentPage: 1,
       pageSize: 10,
-      total: 0,
+      total: 2,
       menuList: [
         {
           id: 1,
@@ -125,6 +127,71 @@ export default {
     },
     handleCurrentChange(val) {
       this.currentPage = val
+    },
+    // 查看菜单详情
+    viewMenu(row) {
+      this.$router.push(`/menu/view/${row.id}`)
+    },
+    // 编辑菜单
+    editMenu(row) {
+      this.$router.push(`/menu/edit/${row.id}`)
+    },
+    // 复制菜单
+    async copyMenu(row) {
+      try {
+        const result = await this.$confirm(`确定要复制菜单"${row.name}"吗？`, '复制确认', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'info',
+        })
+
+        if (result) {
+          // 创建新的菜单项
+          const newMenu = {
+            ...row,
+            id: Date.now(), // 临时ID
+            name: `${row.name}(副本)`,
+            createTime: new Date().toLocaleString('zh-CN'),
+            status: 'draft',
+          }
+
+          // 添加到列表开头
+          this.menuList.unshift(newMenu)
+          this.total += 1
+
+          this.$message.success('菜单复制成功！')
+        }
+      } catch (error) {
+        // 用户取消操作
+        this.$message.info('已取消复制')
+      }
+    },
+    // 删除菜单
+    async deleteMenu(row) {
+      try {
+        const result = await this.$confirm(
+          `确定要删除菜单"${row.name}"吗？删除后无法恢复！`,
+          '删除警告',
+          {
+            confirmButtonText: '确定删除',
+            cancelButtonText: '取消',
+            type: 'warning',
+          },
+        )
+
+        if (result) {
+          // 从列表中移除
+          const index = this.menuList.findIndex((item) => item.id === row.id)
+          if (index > -1) {
+            this.menuList.splice(index, 1)
+            this.total -= 1
+            this.$message.success('菜单删除成功！')
+          }
+        }
+      } catch (error) {
+        // 用户取消操作
+        this.$message.info('已取消删除')
+      }
     },
   },
 }
