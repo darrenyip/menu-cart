@@ -286,48 +286,39 @@
               {{ ingredientSummary.length }} 种原料
             </el-tag>
           </div>
-          <el-button type="primary" @click="copyToClipboard">
-            <el-icon><CopyDocument /></el-icon>复制清单
-          </el-button>
+          <div class="summary-actions">
+            <el-button type="primary" @click="copyToClipboard">
+              <el-icon><CopyDocument /></el-icon>复制清单
+            </el-button>
+            <el-button type="success" @click="exportToExcel">
+              <el-icon><Download /></el-icon>导出Excel
+            </el-button>
+          </div>
         </div>
       </template>
 
-      <el-table :data="ingredientSummary" style="width: 100%" stripe class="summary-table">
-        <el-table-column prop="name" label="原料名称" width="180">
-          <template #default="scope">
-            <div class="ingredient-name-cell">
-              <el-icon class="ingredient-icon"><Apple /></el-icon>
-              <span>{{ scope.row.name }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="totalQuantity" label="总需求量" width="150" align="center">
-          <template #default="scope">
-            <el-tag type="warning" size="default" effect="plain">
-              {{ scope.row.displayQuantity }} {{ scope.row.displayUnit }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="dishes" label="用于菜品" min-width="400">
-          <template #default="scope">
-            <div class="dish-tags">
-              <el-tag
-                v-for="dish in scope.row.dishes"
-                :key="dish.name + dish.portions"
-                size="small"
-                type="info"
-                effect="light"
-                class="dish-tag"
-              >
-                {{ dish.name }}
-                <span class="tag-detail">
-                  ×{{ dish.portions }}份 ({{ dish.displayQuantity }}{{ dish.displayUnit }})
-                </span>
-              </el-tag>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="summary-grid">
+        <div 
+          v-for="item in ingredientSummary" 
+          :key="item.name" 
+          class="summary-item"
+          :class="{ 'is-extra': item.isExtra }"
+        >
+          <div class="summary-item-header">
+            <span class="item-name">{{ item.name }}</span>
+            <span class="item-quantity">{{ item.displayQuantity }} {{ item.displayUnit }}</span>
+          </div>
+          <div class="summary-item-dishes">
+            <span 
+              v-for="dish in item.dishes" 
+              :key="dish.name + dish.portions"
+              class="dish-source"
+            >
+              {{ dish.name }} <span class="dish-detail">×{{ dish.portions }}份 ({{ dish.displayQuantity }}{{ dish.displayUnit }})</span>
+            </span>
+          </div>
+        </div>
+      </div>
     </el-card>
   </div>
 </template>
@@ -347,8 +338,9 @@ import {
   ShoppingBag,
   ShoppingCart,
   DataAnalysis,
-  Apple,
+  Download,
 } from '@element-plus/icons-vue'
+import * as XLSX from 'xlsx'
 import { ElMessage } from 'element-plus'
 import menusApi from '@/api/menus'
 import recipesApi from '@/api/recipes'
@@ -370,7 +362,7 @@ export default {
     ShoppingBag,
     ShoppingCart,
     DataAnalysis,
-    Apple,
+    Download,
   },
   data() {
     return {
@@ -1068,6 +1060,106 @@ export default {
         ElMessage.error('复制失败，请手动复制')
       }
     },
+
+    exportToExcel() {
+      try {
+        if (this.ingredientSummary.length === 0) {
+          ElMessage.warning('暂无原料数据可导出')
+          return
+        }
+
+        // 准备 Excel 数据 - 汇总表
+        const summaryData = this.ingredientSummary.map((item, index) => ({
+          '序号': index + 1,
+          '原料名称': item.name,
+          '数量': item.displayQuantity,
+          '单位': item.displayUnit,
+          '类型': item.isExtra ? '其他采购' : '菜品原料',
+          '来源': item.dishes.map(d => `${d.name}×${d.portions}份`).join('、'),
+        }))
+
+        // 准备明细表 - 每个菜品的原料详情
+        const detailData = []
+        this.dishList.forEach((dish, dishIndex) => {
+          dish.ingredients.forEach((ing, ingIndex) => {
+            if (ing.name && ing.quantity) {
+              const portions = dish.portions || 1
+              const totalQuantity = ing.quantity * portions
+              const converted = this.convertToKilogram(totalQuantity, ing.unit || '份')
+              detailData.push({
+                '序号': detailData.length + 1,
+                '菜品名称': dish.name,
+                '份数': portions,
+                '原料名称': ing.name,
+                '单份用量': ing.quantity,
+                '单位': ing.unit || '',
+                '总用量': converted.quantity,
+                '总用量单位': converted.unit,
+              })
+            }
+          })
+        })
+
+        // 其他采购明细
+        this.extraPurchases.forEach((item, index) => {
+          if (item.name && item.quantity) {
+            detailData.push({
+              '序号': detailData.length + 1,
+              '菜品名称': '其他采购',
+              '份数': 1,
+              '原料名称': item.name,
+              '单份用量': item.quantity,
+              '单位': item.unit || '',
+              '总用量': item.quantity,
+              '总用量单位': item.unit || '',
+            })
+          }
+        })
+
+        // 创建工作簿
+        const wb = XLSX.utils.book_new()
+
+        // 创建汇总表
+        const ws1 = XLSX.utils.json_to_sheet(summaryData)
+        // 设置列宽
+        ws1['!cols'] = [
+          { wch: 6 },   // 序号
+          { wch: 15 },  // 原料名称
+          { wch: 10 },  // 数量
+          { wch: 8 },   // 单位
+          { wch: 10 },  // 类型
+          { wch: 40 },  // 来源
+        ]
+        XLSX.utils.book_append_sheet(wb, ws1, '原料汇总')
+
+        // 创建明细表
+        const ws2 = XLSX.utils.json_to_sheet(detailData)
+        ws2['!cols'] = [
+          { wch: 6 },   // 序号
+          { wch: 15 },  // 菜品名称
+          { wch: 6 },   // 份数
+          { wch: 15 },  // 原料名称
+          { wch: 10 },  // 单份用量
+          { wch: 8 },   // 单位
+          { wch: 10 },  // 总用量
+          { wch: 10 },  // 总用量单位
+        ]
+        XLSX.utils.book_append_sheet(wb, ws2, '原料明细')
+
+        // 生成文件名
+        const menuName = this.menuForm.name || '采购清单'
+        const dateStr = this.menuForm.date || new Date().toISOString().split('T')[0]
+        const fileName = `${menuName}_${dateStr}.xlsx`
+
+        // 导出文件
+        XLSX.writeFile(wb, fileName)
+
+        ElMessage.success('Excel文件已导出')
+      } catch (error) {
+        console.error('导出失败:', error)
+        ElMessage.error('导出失败，请重试')
+      }
+    },
   },
 }
 </script>
@@ -1084,7 +1176,7 @@ export default {
   align-items: center;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
 }
 
 .header-left {
@@ -1097,17 +1189,19 @@ export default {
   font-size: 20px;
   padding: 8px;
   border-radius: 8px;
+  color: #64748b;
 }
 
 .back-btn:hover {
-  background-color: #f5f7fa;
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
 }
 
 .page-title {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  color: #0f172a;
 }
 
 .header-actions {
@@ -1119,20 +1213,37 @@ export default {
   border-radius: 8px;
 }
 
+.header-actions .el-button--primary {
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.header-actions .el-button--primary:hover {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
 /* 卡片样式 */
 .info-card,
 .dishes-card,
 .summary-card {
   margin-bottom: 20px;
   border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .info-card :deep(.el-card__header),
-.dishes-card :deep(.el-card__header),
 .summary-card :deep(.el-card__header) {
   padding: 16px 20px;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-bottom: 1px solid #e2e8f0;
+}
+
+/* 菜品列表卡片 - 翡翠绿风格 */
+.dishes-card :deep(.el-card__header) {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.15);
 }
 
 .info-card :deep(.el-card__body),
@@ -1154,7 +1265,7 @@ export default {
 
 .card-icon {
   font-size: 18px;
-  color: #409eff;
+  color: #10b981;
   margin-right: 8px;
 }
 
@@ -1184,15 +1295,15 @@ export default {
 
 .dish-item {
   background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(16, 185, 129, 0.12);
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
 .dish-item:hover {
-  border-color: #409eff;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.1);
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.12);
 }
 
 .dish-header {
@@ -1200,8 +1311,8 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(6, 182, 212, 0.04) 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
 }
 
 .dish-index {
@@ -1214,11 +1325,12 @@ export default {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
   color: #fff;
   border-radius: 8px;
   font-weight: 600;
   font-size: 14px;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .dish-main {
@@ -1271,13 +1383,18 @@ export default {
   color: #4b5563;
 }
 
+.ingredients-title .el-icon {
+  color: #10b981;
+}
+
 .no-ingredients {
   padding: 20px;
   text-align: center;
-  color: #9ca3af;
-  background-color: #f9fafb;
+  color: #64748b;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(6, 182, 212, 0.03) 100%);
   border-radius: 8px;
   font-size: 13px;
+  border: 1px dashed rgba(16, 185, 129, 0.25);
 }
 
 .ingredients-list {
@@ -1291,15 +1408,15 @@ export default {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background-color: #f9fafb;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(248, 250, 252, 1) 100%);
   border-radius: 8px;
-  border: 1px solid #f3f4f6;
+  border: 1px solid rgba(16, 185, 129, 0.1);
   transition: all 0.2s ease;
 }
 
 .ingredient-row:hover {
-  background-color: #f3f4f6;
-  border-color: #e5e7eb;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(241, 245, 249, 1) 100%);
+  border-color: rgba(16, 185, 129, 0.2);
 }
 
 .ingredient-name {
@@ -1320,37 +1437,144 @@ export default {
   flex-shrink: 0;
 }
 
-/* 汇总表格 */
-.summary-table {
-  border-radius: 8px;
-  overflow: hidden;
+/* 原料汇总卡片 */
+.summary-card :deep(.el-card__header) {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.08) 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.ingredient-name-cell {
+/* 原料汇总网格布局 */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.summary-item {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.25s ease;
+}
+
+.summary-item:hover {
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.1);
+  transform: translateY(-2px);
+}
+
+.summary-item.is-extra {
+  background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.summary-item.is-extra:hover {
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.1);
+}
+
+.summary-item-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
 }
 
-.ingredient-icon {
-  color: #f59e0b;
+.summary-item.is-extra .summary-item-header {
+  border-bottom-color: rgba(245, 158, 11, 0.15);
+}
+
+.item-name {
   font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
 }
 
-.dish-tags {
+.item-quantity {
+  font-size: 15px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.summary-item.is-extra .item-quantity {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.summary-item-dishes {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.dish-tag {
+.dish-source {
+  font-size: 13px;
+  color: #475569;
+  padding: 6px 10px;
+  background: rgba(16, 185, 129, 0.04);
   border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.tag-detail {
-  opacity: 0.7;
-  margin-left: 4px;
-  font-size: 11px;
+.summary-item.is-extra .dish-source {
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.dish-detail {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* 菜品列表卡片按钮 */
+.dishes-card .card-header .el-button--primary {
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+.dishes-card .card-header .el-button--primary:hover {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+/* 空状态按钮 */
+.empty-state .el-button--primary {
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  border: none;
+}
+
+/* 原料汇总操作按钮组 */
+.summary-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.summary-card .card-header .el-button--primary {
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+.summary-card .card-header .el-button--primary:hover {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.summary-card .card-header .el-button--success {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+}
+
+.summary-card .card-header .el-button--success:hover {
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
 }
 
 /* 其他原料采购 */
@@ -1461,6 +1685,22 @@ export default {
   .ingredient-quantity,
   .ingredient-unit {
     flex: 1;
+  }
+
+  /* 汇总操作按钮移动端适配 */
+  .summary-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .summary-actions .el-button {
+    margin: 0;
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
   }
 }
 </style>

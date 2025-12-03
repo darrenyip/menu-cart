@@ -358,36 +358,47 @@ export default {
   min-height: 100%;
 }
 
-/* 欢迎区域 */
+/* 欢迎区域 - 深色科技风格 */
 .welcome-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0c1222 0%, #162032 60%, #0f1729 100%);
   border-radius: 20px;
-  padding: 32px 40px;
+  padding: 36px 44px;
   margin-bottom: 28px;
   position: relative;
   overflow: hidden;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.2),
+    0 0 40px rgba(16, 185, 129, 0.05);
 }
 
 .welcome-section::before {
   content: '';
   position: absolute;
   top: -50%;
-  right: -20%;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+  right: -10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 60%);
   border-radius: 50%;
+  animation: pulse 8s ease-in-out infinite;
 }
 
 .welcome-section::after {
   content: '';
   position: absolute;
-  bottom: -30%;
-  left: 10%;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  bottom: -40%;
+  left: 5%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 60%);
   border-radius: 50%;
+  animation: pulse 10s ease-in-out infinite reverse;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 0.8; }
 }
 
 .welcome-content {
@@ -401,17 +412,26 @@ export default {
 .welcome-title {
   font-size: 32px;
   font-weight: 700;
-  color: #fff;
-  margin: 0 0 8px 0;
+  color: #e2e8f0;
+  margin: 0 0 10px 0;
   display: flex;
   align-items: center;
   gap: 12px;
+  text-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+}
+
+.greeting {
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .wave-emoji {
   display: inline-block;
   animation: wave 1.5s ease-in-out infinite;
   transform-origin: 70% 70%;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
 }
 
 @keyframes wave {
@@ -422,29 +442,37 @@ export default {
 }
 
 .welcome-date {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  color: rgba(148, 163, 184, 0.9);
   margin: 0;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+.welcome-date .el-icon {
+  color: #10b981;
+}
+
 .primary-btn {
-  height: 48px;
-  padding: 0 32px;
-  font-size: 16px;
+  height: 50px;
+  padding: 0 36px;
+  font-size: 15px;
+  font-weight: 600;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  border: none;
+  box-shadow: 
+    0 4px 16px rgba(16, 185, 129, 0.35),
+    0 0 20px rgba(16, 185, 129, 0.15);
   transition: all 0.3s ease;
 }
 
 .primary-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 
+    0 8px 24px rgba(16, 185, 129, 0.4),
+    0 0 30px rgba(16, 185, 129, 0.2);
 }
 
 /* 统计卡片 */
@@ -459,9 +487,9 @@ export default {
 }
 
 .stat-card {
-  background: #fff;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
   border-radius: 16px;
-  padding: 24px;
+  padding: 26px;
   display: flex;
   align-items: center;
   gap: 20px;
@@ -470,59 +498,96 @@ export default {
   position: relative;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .stat-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 32px rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.2);
 }
 
 .stat-decoration {
   position: absolute;
-  top: -20px;
-  right: -20px;
-  width: 100px;
-  height: 100px;
+  top: -30px;
+  right: -30px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
-  opacity: 0.1;
+  opacity: 0.08;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-decoration {
+  opacity: 0.15;
+  transform: scale(1.1);
 }
 
 .menu-card .stat-decoration {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
 }
 
 .recipe-card .stat-decoration {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
 }
 
 .material-card .stat-decoration {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
 }
 
 .stat-icon {
   width: 64px;
   height: 64px;
-  border-radius: 16px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 28px;
   flex-shrink: 0;
+  position: relative;
+}
+
+.stat-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stat-card:hover .stat-icon::after {
+  opacity: 1;
 }
 
 .menu-card .stat-icon {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
   color: #fff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.menu-card .stat-icon::after {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
 }
 
 .recipe-card .stat-icon {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
   color: #fff;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.recipe-card .stat-icon::after {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
 }
 
 .material-card .stat-icon {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
   color: #fff;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.material-card .stat-icon::after {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
 }
 
 .stat-info {
@@ -532,10 +597,22 @@ export default {
 .stat-value {
   display: block;
   font-size: 36px;
-  font-weight: 700;
-  color: #1f2937;
+  font-weight: 800;
+  color: #0f172a;
   line-height: 1;
   margin-bottom: 6px;
+}
+
+.menu-card:hover .stat-value {
+  color: #10b981;
+}
+
+.recipe-card:hover .stat-value {
+  color: #f59e0b;
+}
+
+.material-card:hover .stat-value {
+  color: #8b5cf6;
 }
 
 .stat-value.loading {
@@ -544,7 +621,8 @@ export default {
 
 .stat-label {
   font-size: 14px;
-  color: #6b7280;
+  color: #64748b;
+  font-weight: 500;
 }
 
 /* 主内容区 */
@@ -559,6 +637,7 @@ export default {
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .card-header {
@@ -566,7 +645,8 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f1f5f9;
+  background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
 }
 
 .header-title {
@@ -575,12 +655,20 @@ export default {
   gap: 10px;
   font-size: 17px;
   font-weight: 600;
-  color: #1f2937;
+  color: #0f172a;
 }
 
 .header-icon {
   font-size: 20px;
-  color: #667eea;
+  color: #10b981;
+}
+
+.card-header :deep(.el-button) {
+  color: #10b981;
+}
+
+.card-header :deep(.el-button:hover) {
+  color: #059669;
 }
 
 .card-body {
@@ -591,18 +679,24 @@ export default {
 .empty-state {
   text-align: center;
   padding: 48px 20px;
-  color: #9ca3af;
+  color: #94a3b8;
 }
 
 .empty-icon {
   font-size: 56px;
   margin-bottom: 16px;
-  opacity: 0.4;
+  opacity: 0.3;
+  color: #10b981;
 }
 
 .empty-state p {
   margin: 0 0 20px 0;
   font-size: 15px;
+}
+
+.empty-state :deep(.el-button) {
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  border: none;
 }
 
 /* 菜单列表 */
@@ -617,41 +711,50 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: #f9fafb;
+  background: #f8fafc;
   border-radius: 12px;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
   border: 1px solid transparent;
 }
 
 .menu-item:hover {
-  background: #f3f4f6;
+  background: #f1f5f9;
+  border-color: rgba(16, 185, 129, 0.15);
 }
 
 .menu-item.is-today {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
-  border-color: rgba(102, 126, 234, 0.2);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%);
+  border-color: rgba(16, 185, 129, 0.25);
 }
 
 .menu-item.is-upcoming {
-  background: rgba(245, 158, 11, 0.05);
-  border-color: rgba(245, 158, 11, 0.15);
+  background: rgba(245, 158, 11, 0.06);
+  border-color: rgba(245, 158, 11, 0.2);
 }
 
 .menu-date-badge {
-  width: 56px;
-  height: 68px;
+  width: 58px;
+  height: 70px;
   background: #fff;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
+}
+
+.menu-item:hover .menu-date-badge {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
 }
 
 .menu-item.is-today .menu-date-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
 }
 
 .menu-item.is-today .menu-date-badge .date-month,
@@ -662,20 +765,21 @@ export default {
 
 .date-month {
   font-size: 11px;
-  color: #9ca3af;
-  font-weight: 500;
+  color: #94a3b8;
+  font-weight: 600;
 }
 
 .date-day {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1f2937;
-  line-height: 1.2;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
 }
 
 .date-weekday {
   font-size: 11px;
-  color: #6b7280;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .menu-info {
@@ -687,7 +791,7 @@ export default {
   margin: 0 0 8px 0;
   font-size: 15px;
   font-weight: 600;
-  color: #1f2937;
+  color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -710,6 +814,15 @@ export default {
   flex-shrink: 0;
 }
 
+.menu-actions :deep(.el-button) {
+  color: #64748b;
+}
+
+.menu-actions :deep(.el-button:hover) {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
 /* 快捷入口 */
 .quick-grid {
   display: grid;
@@ -721,50 +834,62 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 20px 16px;
-  background: #f9fafb;
-  border-radius: 12px;
+  gap: 12px;
+  padding: 22px 16px;
+  background: #f8fafc;
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
+  border: 1px solid transparent;
 }
 
 .quick-item:hover {
-  background: #f3f4f6;
-  transform: translateY(-2px);
+  background: #f1f5f9;
+  transform: translateY(-3px);
+  border-color: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.1);
 }
 
 .quick-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 24px;
   color: #fff;
+  transition: all 0.25s ease;
+}
+
+.quick-item:hover .quick-icon {
+  transform: scale(1.1);
 }
 
 .quick-icon.add-menu {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .quick-icon.view-menu {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .quick-icon.recipes {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
 .quick-icon.ingredients {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 .quick-label {
   font-size: 13px;
-  color: #4b5563;
-  font-weight: 500;
+  color: #475569;
+  font-weight: 600;
 }
 
 /* 弹窗 */
@@ -779,10 +904,15 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 16px;
-  background: #f3f4f6;
-  border-radius: 10px;
-  color: #6b7280;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%);
+  border-radius: 12px;
+  color: #475569;
   font-size: 14px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.menu-detail .detail-hint .el-icon {
+  color: #10b981;
 }
 
 /* 响应式 */
@@ -797,10 +927,18 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .welcome-section {
+    padding: 28px 24px;
+  }
+
   .welcome-content {
     flex-direction: column;
     align-items: flex-start;
-    gap: 20px;
+    gap: 24px;
+  }
+
+  .welcome-title {
+    font-size: 26px;
   }
 
   .stats-grid {
