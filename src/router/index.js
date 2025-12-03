@@ -34,6 +34,12 @@ const router = createRouter({
           meta: { title: '新增菜单' },
         },
         {
+          path: '/menu/edit/:id',
+          name: 'MenuEdit',
+          component: MenuAdd,
+          meta: { title: '编辑菜单' },
+        },
+        {
           path: '/recipes',
           name: 'Recipes',
           component: Recipes,
