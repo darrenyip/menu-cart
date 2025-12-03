@@ -300,7 +300,7 @@
       <div class="summary-grid">
         <div 
           v-for="item in ingredientSummary" 
-          :key="item.name" 
+          :key="item.isExtra ? `${item.name}_${item.displayUnit}` : item.name" 
           class="summary-item"
           :class="{ 'is-extra': item.isExtra }"
         >
@@ -1113,6 +1113,7 @@ export default {
         // 其他采购明细
         this.extraPurchases.forEach((item, index) => {
           if (item.name && item.quantity) {
+            const converted = this.convertToJin(item.quantity, item.unit || '份')
             detailData.push({
               '序号': detailData.length + 1,
               '菜品名称': '其他采购',
@@ -1120,8 +1121,8 @@ export default {
               '原料名称': item.name,
               '单份用量': item.quantity,
               '单位': item.unit || '',
-              '总用量': item.quantity,
-              '总用量单位': item.unit || '',
+              '总用量': converted.quantity,
+              '总用量单位': converted.unit,
             })
           }
         })
