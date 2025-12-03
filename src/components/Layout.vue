@@ -82,6 +82,29 @@
               <el-icon><Refresh /></el-icon>
             </el-button>
           </el-tooltip>
+          
+          <!-- 用户信息下拉菜单 -->
+          <el-dropdown trigger="click" @command="handleUserCommand">
+            <div class="user-info">
+              <el-avatar :size="32" class="user-avatar">
+                <el-icon><User /></el-icon>
+              </el-avatar>
+              <span class="user-name">{{ userName }}</span>
+              <el-icon class="user-arrow"><ArrowDown /></el-icon>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item disabled>
+                  <el-icon><Message /></el-icon>
+                  {{ userEmail }}
+                </el-dropdown-item>
+                <el-dropdown-item divided command="logout">
+                  <el-icon><SwitchButton /></el-icon>
+                  退出登录
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </el-header>
 
@@ -104,7 +127,13 @@ import {
   Dish,
   CirclePlus,
   Refresh,
+  User,
+  ArrowDown,
+  Message,
+  SwitchButton,
 } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import authApi from '@/api/auth'
 
 export default {
   name: 'Layout',
@@ -118,6 +147,10 @@ export default {
     Dish,
     CirclePlus,
     Refresh,
+    User,
+    ArrowDown,
+    Message,
+    SwitchButton,
   },
   data() {
     return {
@@ -138,6 +171,14 @@ export default {
         return '/menu'
       }
       return path
+    },
+    userName() {
+      const user = authApi.getCurrentUser()
+      return user?.name || user?.email?.split('@')[0] || '用户'
+    },
+    userEmail() {
+      const user = authApi.getCurrentUser()
+      return user?.email || ''
     },
     currentBreadcrumb() {
       const breadcrumbMap = {
@@ -164,6 +205,26 @@ export default {
     },
     refreshPage() {
       window.location.reload()
+    },
+    async handleUserCommand(command) {
+      if (command === 'logout') {
+        try {
+          await ElMessageBox.confirm(
+            '确定要退出登录吗？',
+            '退出确认',
+            {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning',
+            }
+          )
+          authApi.logout()
+          ElMessage.success('已退出登录')
+          this.$router.push('/login')
+        } catch {
+          // 取消操作
+        }
+      }
     },
   },
 }
@@ -376,7 +437,7 @@ export default {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
 }
 
 .header-right .el-button {
@@ -386,6 +447,42 @@ export default {
 
 .header-right .el-button:hover {
   color: #667eea;
+}
+
+/* 用户信息 */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-info:hover {
+  background: #f3f4f6;
+}
+
+.user-avatar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-arrow {
+  font-size: 12px;
+  color: #9ca3af;
 }
 
 /* 主内容 */
