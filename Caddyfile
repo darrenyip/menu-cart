@@ -1,0 +1,179 @@
+http://www.gmgsyy.com {
+	redir https://www.gmgsyy.com{uri}
+}
+
+http://research.gmgsyy.com {
+	redir https://research.gmgsyy.com{uri}
+}
+
+http://institute.gmgsyy.com {
+	redir https://institute.gmgsyy.com{uri}
+}
+
+http://ruan-menu-screen.gmgsyy.com {
+	redir https://ruan-menu-screen.gmgsyy.com{uri}
+}
+
+http://ruan-menu-web.gmgsyy.com {
+	redir https://ruan-menu-web.gmgsyy.com{uri}
+}
+
+https://institute.gmgsyy.com {
+	handle {
+		root * /home/ubuntu/frontend/ortho-institute/dist
+		encode gzip
+		header {
+			Cache-Control "public, max-age=36000"
+		}
+		file_server
+		try_files {path} /index.html
+	}
+	handle /api/* {
+		reverse_proxy localhost:3000
+	}
+}
+
+https://www.gmgsyy.com {
+	handle {
+		root * /home/ubuntu/frontend/ortho-hospital-landing/dist
+		encode gzip
+		header {
+			Cache-Control "public, max-age=36000"
+		}
+		file_server
+		try_files {path} /index.html
+	}
+	handle /api/* {
+		reverse_proxy localhost:3000
+	}
+}
+
+https://research.gmgsyy.com {
+	handle {
+		root * /home/ubuntu/frontend/ortho-hospital-web/dist
+		encode gzip
+		header {
+			Cache-Control "public, max-age=36000"
+		}
+		file_server
+		try_files {path} /index.html
+	}
+	handle /api/* {
+		reverse_proxy localhost:3000
+	}
+}
+
+https://ruan-menu-screen.gmgsyy.com {
+	@static {
+		file
+		path *.ttf *.ico *.css *.js *.gif *.jpg *.jpeg *.png *.svg *.woff
+	}
+	handle @static {
+		root * /home/ubuntu/frontend/ruanMenuScreen/dist
+		header Cache-Control "public, max-age=5184000, immutable"
+		header X-Static-Matched "true"
+		file_server
+	}
+	handle {
+		root * /home/ubuntu/frontend/ruanMenuScreen/dist
+		encode gzip zstd
+		header Cache-Control "public, max-age=36000"
+		file_server
+		try_files {path} /index.html
+	}
+}
+
+https://ruan-menu-web.gmgsyy.com {
+	handle {
+		root * /home/ubuntu/frontend/ruanMenuWeb/dist
+		encode gzip
+		header {
+			Cache-Control "public, max-age=3600"
+		}
+		file_server
+		try_files {path} /index.html
+	}
+	handle /api/* {
+		reverse_proxy localhost:3000
+	}
+}
+
+https://ruan-menu-sm.gmgsyy.com {
+	handle {
+		root * /home/ubuntu/frontend/ruanMenuScreenNormal/dist
+		file_server
+		try_files {path} /index.html
+		encode gzip
+	}
+	handle /api/* {
+		reverse_proxy localhost:8090
+	}
+}
+
+https://ruan-menu-db.gmgsyy.com {
+	handle {
+		reverse_proxy localhost:8090
+		encode gzip
+	}
+}
+
+http://62.234.26.130:80 {
+	handle {
+		root * /home/ubuntu/frontend/ortho-hospital-landing/dist
+		file_server
+		try_files {path} /index.html
+		encode gzip
+	}
+	handle /api/* {
+		reverse_proxy localhost:3000
+	}
+}
+
+http://62.234.26.130:81 {
+	handle {
+		root * /home/ubuntu/frontend/ortho-hospital-web/dist
+		file_server
+		try_files {path} /index.html
+		encode gzip
+	}
+	handle /api/* {
+		reverse_proxy localhost:3000
+	}
+}
+
+http://62.234.26.130:3009 {
+	handle {
+		reverse_proxy localhost:3008
+	}
+}
+http://62.234.26.130:8091 {
+	handle {
+		reverse_proxy localhost:8090
+	}
+}
+https://ss.gmgsyy.com {
+	handle {
+		root * /home/ubuntu/frontend/ssOrderCheck/dist
+		encode gzip
+		header {
+			Cache-Control "public, max-age=36000"
+		}
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+https://menu-cart.gmgsyy.com {
+    handle {
+        root * /home/ubuntu/frontend/menu-cart/dist
+        encode gzip
+        header {
+            Cache-Control "public, max-age=3600"
+        }
+        file_server
+        try_files {path} /index.html
+    }
+    handle /api/* {
+    	reverse_proxy localhost:3000
+    }
+}

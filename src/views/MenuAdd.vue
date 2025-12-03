@@ -340,8 +340,8 @@ import {
   DataAnalysis,
   Download,
 } from '@element-plus/icons-vue'
-import * as XLSX from 'xlsx'
 import { ElMessage } from 'element-plus'
+import { loadXLSX } from '@/utils/xlsx'
 import menusApi from '@/api/menus'
 import recipesApi from '@/api/recipes'
 import materialsApi from '@/api/materials'
@@ -518,13 +518,13 @@ export default {
       })
 
       return Object.values(summary).map((item) => {
-        const converted = this.convertToKilogram(item.totalQuantity, item.originalUnit)
+        const converted = this.convertToJin(item.totalQuantity, item.originalUnit)
         return {
           ...item,
           displayQuantity: converted.quantity,
           displayUnit: converted.unit,
           dishes: item.dishes.map((dish) => {
-            const dishConverted = this.convertToKilogram(dish.quantity, dish.unit)
+            const dishConverted = this.convertToJin(dish.quantity, dish.unit)
             return {
               ...dish,
               displayQuantity: dishConverted.quantity,
@@ -997,26 +997,33 @@ export default {
       this.$router.push('/menu')
     },
 
-    convertToKilogram(quantity, unit) {
-      const weightUnits = {
-        克: 0.001,
-        千克: 1,
-        公斤: 1,
-        斤: 0.5,
-        两: 0.05,
+    // 将各种重量单位统一转换为斤显示
+    convertToJin(quantity, unit) {
+      // 各单位转换为克的系数
+      const toGram = {
+        克: 1,
+        千克: 1000,
+        公斤: 1000,
+        斤: 500,
+        两: 50,
       }
 
-      if (weightUnits[unit]) {
-        const kgQuantity = quantity * weightUnits[unit]
+      if (toGram[unit]) {
+        // 先统一转换为克
+        const gramQuantity = quantity * toGram[unit]
+        // 再转换为斤（1斤 = 500克）
+        const jinQuantity = gramQuantity / 500
 
-        if (kgQuantity >= 1) {
+        if (jinQuantity >= 1) {
+          // >= 1斤时显示斤，保留1位小数
           return {
-            quantity: parseFloat(kgQuantity.toFixed(2)),
-            unit: '公斤',
+            quantity: parseFloat(jinQuantity.toFixed(1)),
+            unit: '斤',
           }
-        } else if (kgQuantity >= 0.001) {
+        } else if (gramQuantity >= 1) {
+          // < 1斤时显示克
           return {
-            quantity: Math.round(kgQuantity * 1000),
+            quantity: Math.round(gramQuantity),
             unit: '克',
           }
         } else {
@@ -1027,6 +1034,7 @@ export default {
         }
       }
 
+      // 非重量单位保持原样
       return {
         quantity: quantity,
         unit: unit,
@@ -1061,12 +1069,14 @@ export default {
       }
     },
 
-    exportToExcel() {
+    async exportToExcel() {
       try {
         if (this.ingredientSummary.length === 0) {
           ElMessage.warning('暂无原料数据可导出')
           return
         }
+
+        const XLSX = await loadXLSX()
 
         // 准备 Excel 数据 - 汇总表
         const summaryData = this.ingredientSummary.map((item, index) => ({
@@ -1085,7 +1095,7 @@ export default {
             if (ing.name && ing.quantity) {
               const portions = dish.portions || 1
               const totalQuantity = ing.quantity * portions
-              const converted = this.convertToKilogram(totalQuantity, ing.unit || '份')
+              const converted = this.convertToJin(totalQuantity, ing.unit || '份')
               detailData.push({
                 '序号': detailData.length + 1,
                 '菜品名称': dish.name,

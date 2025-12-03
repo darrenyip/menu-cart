@@ -339,8 +339,8 @@ import {
   Goods,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import * as XLSX from 'xlsx'
 import materialsApi from '@/api/materials'
+import { loadXLSX } from '@/utils/xlsx'
 
 export default {
   name: 'Ingredients',
@@ -555,8 +555,9 @@ export default {
     // 处理文件选择
     handleFileChange(file) {
       const reader = new FileReader()
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
+          const XLSX = await loadXLSX()
           const data = new Uint8Array(e.target.result)
           const workbook = XLSX.read(data, { type: 'array' })
 

@@ -1,22 +1,88 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-
-import ElementPlus from 'element-plus'
-import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
-import 'element-plus/dist/index.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import {
+  Apple,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  Check,
+  CirclePlus,
+  Close,
+  CopyDocument,
+  DataAnalysis,
+  Delete,
+  Dish,
+  Document,
+  Download,
+  Edit,
+  Expand,
+  Fold,
+  Goods,
+  Grid,
+  HomeFilled,
+  InfoFilled,
+  Message,
+  Money,
+  Notebook,
+  Plus,
+  Refresh,
+  Search,
+  ShoppingBag,
+  ShoppingCart,
+  SwitchButton,
+  Upload,
+  UploadFilled,
+  User,
+  View,
+} from '@element-plus/icons-vue'
 
 import App from './App.vue'
 import router from './router'
 
 const app = createApp(App)
 
-app.use(ElementPlus, { locale: zhCn })
 app.use(createPinia())
 app.use(router)
 
-// 注册所有图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+const elementPlusIcons = {
+  Apple,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  Check,
+  CirclePlus,
+  Close,
+  CopyDocument,
+  DataAnalysis,
+  Delete,
+  Dish,
+  Document,
+  Download,
+  Edit,
+  Expand,
+  Fold,
+  Goods,
+  Grid,
+  HomeFilled,
+  InfoFilled,
+  Message,
+  Money,
+  Notebook,
+  Plus,
+  Refresh,
+  Search,
+  ShoppingBag,
+  ShoppingCart,
+  SwitchButton,
+  Upload,
+  UploadFilled,
+  User,
+  View,
+}
+
+for (const [key, component] of Object.entries(elementPlusIcons)) {
   app.component(key, component)
 }
 
