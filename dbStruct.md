@@ -76,15 +76,16 @@
 
 ### 5. `cart_menu_dishes` - 菜单菜品关联表
 
-| 字段名     | 类型      | 说明                        |
-| ---------- | --------- | --------------------------- |
-| `id`       | text (PK) | 自动生成                    |
-| `menu`     | relation  | 关联 `cart_menus`           |
-| `recipe`   | relation  | 关联 `cart_recipes`（可选） |
-| `name`     | text      | 菜品名称                    |
-| `portions` | number    | 份数                        |
-| `sort`     | number    | 排序序号                    |
-| `created`  | datetime  | 自动生成                    |
+| 字段名     | 类型      | 说明                            |
+| ---------- | --------- | ------------------------------- |
+| `id`       | text (PK) | 自动生成                        |
+| `menu`     | relation  | 关联 `cart_menus`               |
+| `recipe`   | relation  | 关联 `cart_recipes`（可选）     |
+| `name`     | text      | 菜品名称                        |
+| `category` | text      | 菜品分类（荤菜/半荤/素菜/炖汤等）|
+| `portions` | number    | 份数                            |
+| `sort`     | number    | 排序序号                        |
+| `created`  | datetime  | 自动生成                        |
 
 ---
 

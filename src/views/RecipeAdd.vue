@@ -1,5 +1,6 @@
 <template>
   <div class="recipe-add-page">
+    <div class="page-container">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -186,6 +187,7 @@
         </div>
       </div>
     </el-card>
+    </div>
   </div>
 </template>
 
@@ -528,6 +530,12 @@ export default {
   padding: 0;
 }
 
+/* 页面容器 - 限制最大宽度 */
+.page-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
 /* 页面头部 */
 .page-header {
   display: flex;
@@ -685,29 +693,55 @@ export default {
 }
 
 .ingredient-index {
-  flex: 0 0 28px;
+  flex: 0 0 auto;
 }
 
 .ingredient-name {
-  flex: 1 1 200px;
-  min-width: 150px;
+  flex: 2 1 25%;
+  min-width: 120px;
+  overflow: hidden;
+}
+
+.ingredient-name :deep(.el-autocomplete) {
+  width: 100%;
 }
 
 .ingredient-quantity {
-  flex: 0 0 100px;
+  flex: 1 1 12%;
+  min-width: 90px;
+  overflow: hidden;
+}
+
+.ingredient-quantity :deep(.el-input-number) {
+  width: 100%;
 }
 
 .ingredient-unit {
-  flex: 0 0 90px;
+  flex: 1 1 10%;
+  min-width: 80px;
+  overflow: hidden;
+}
+
+.ingredient-unit :deep(.el-select) {
+  width: 100%;
+}
+
+.ingredient-unit :deep(.el-select__wrapper) {
+  min-width: 0;
 }
 
 .ingredient-remark {
-  flex: 1 1 150px;
+  flex: 1.5 1 15%;
   min-width: 100px;
+  overflow: hidden;
+}
+
+.ingredient-remark :deep(.el-input) {
+  width: 100%;
 }
 
 .ingredient-actions {
-  flex: 0 0 32px;
+  flex: 0 0 auto;
 }
 
 /* 按钮样式 */
@@ -721,102 +755,385 @@ export default {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
 }
 
-/* 响应式 */
-@media (max-width: 992px) {
+/* ================================
+   响应式样式
+   ================================ */
+
+/* 平板端 (768px - 1024px) */
+@media (max-width: 1024px) {
+  .page-container {
+    max-width: 100%;
+  }
+
+  /* 平板端保持一行，使用百分比 */
   .ingredient-row {
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .ingredient-index {
-    order: 0;
-  }
-
-  .ingredient-actions {
-    order: 0;
-    margin-left: auto;
+    flex-wrap: nowrap;
+    gap: 8px;
   }
 
   .ingredient-name {
-    width: calc(100% - 80px);
-    flex: none;
-    order: 1;
+    flex: 2 1 20%;
+    min-width: 100px;
+  }
+
+  .ingredient-name :deep(.el-autocomplete) {
+    width: 100%;
   }
 
   .ingredient-quantity {
-    flex: none;
-    width: 110px;
-    order: 2;
+    flex: 1 1 15%;
+    min-width: 80px;
+  }
+
+  .ingredient-quantity :deep(.el-input-number) {
+    width: 100%;
   }
 
   .ingredient-unit {
-    flex: none;
-    width: 100px;
-    order: 3;
+    flex: 1 1 12%;
+    min-width: 70px;
+  }
+
+  .ingredient-unit :deep(.el-select) {
+    width: 100%;
+  }
+
+  .ingredient-unit :deep(.el-select__wrapper) {
+    min-width: 0;
   }
 
   .ingredient-remark {
-    flex: 1;
-    min-width: 120px;
-    order: 4;
+    flex: 1.5 1 18%;
+    min-width: 80px;
+  }
+
+  .ingredient-remark :deep(.el-input) {
+    width: 100%;
   }
 }
 
+/* 小平板 (576px - 768px) */
+@media (max-width: 768px) {
+  .page-header {
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .header-actions .el-button {
+    padding: 8px 12px;
+  }
+
+  /* 卡片样式调整 */
+  .info-card,
+  .ingredients-card {
+    margin-bottom: 16px;
+    border-radius: 10px;
+  }
+
+  .info-card :deep(.el-card__header),
+  .ingredients-card :deep(.el-card__header) {
+    padding: 12px 16px;
+  }
+
+  .info-card :deep(.el-card__body),
+  .ingredients-card :deep(.el-card__body) {
+    padding: 16px;
+  }
+
+  .card-header span {
+    font-size: 15px;
+  }
+
+  .card-icon {
+    font-size: 16px;
+  }
+
+  /* 表单调整 - 两列变一列 */
+  .info-card :deep(.el-col-12) {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+
+  /* 原料列表 - 小平板保持一行但更紧凑 */
+  .ingredients-list {
+    gap: 10px;
+  }
+
+  .ingredient-row {
+    padding: 10px 12px;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .ingredient-name {
+    flex: 2 1 22%;
+    min-width: 90px;
+  }
+
+  .ingredient-name :deep(.el-autocomplete) {
+    width: 100%;
+  }
+
+  .ingredient-quantity {
+    flex: 1 1 14%;
+    min-width: 70px;
+  }
+
+  .ingredient-quantity :deep(.el-input-number) {
+    width: 100%;
+  }
+
+  .ingredient-unit {
+    flex: 1 1 12%;
+    min-width: 65px;
+  }
+
+  .ingredient-unit :deep(.el-select) {
+    width: 100%;
+  }
+
+  .ingredient-unit :deep(.el-select__wrapper) {
+    min-width: 0;
+  }
+
+  .ingredient-remark {
+    flex: 1.5 1 16%;
+    min-width: 70px;
+  }
+
+  .ingredient-remark :deep(.el-input) {
+    width: 100%;
+  }
+
+  .index-badge {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+}
+
+/* 手机端 (<576px) */
 @media (max-width: 576px) {
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+  }
+
+  .header-left {
+    gap: 6px;
+  }
+
+  .back-btn {
+    font-size: 18px;
+    padding: 6px;
+  }
+
+  .page-title {
+    font-size: 17px;
   }
 
   .header-actions {
     width: 100%;
-    justify-content: flex-end;
+    justify-content: space-between;
   }
 
-  .ingredient-row {
+  .header-actions .el-button {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  /* 卡片调整 */
+  .info-card,
+  .ingredients-card {
+    margin-bottom: 12px;
+    border-radius: 8px;
+  }
+
+  .info-card :deep(.el-card__header),
+  .ingredients-card :deep(.el-card__header) {
+    padding: 10px 12px;
+  }
+
+  .info-card :deep(.el-card__body),
+  .ingredients-card :deep(.el-card__body) {
     padding: 12px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .card-header span {
+    font-size: 14px;
+  }
+
+  .card-icon {
+    font-size: 15px;
+  }
+
+  /* 表单调整 */
+  .info-card :deep(.el-form-item) {
+    margin-bottom: 14px;
+  }
+
+  .info-card :deep(.el-form-item__label) {
+    font-size: 13px;
+    padding-bottom: 4px;
+  }
+
+  .info-card :deep(.el-input--large .el-input__wrapper) {
+    padding: 8px 11px;
+  }
+
+  .info-card :deep(.el-select--large) {
+    height: auto;
+  }
+
+  /* 原料列表 - 手机端使用 Grid 堆叠布局 */
+  .ingredients-list {
     gap: 8px;
   }
 
-  .ingredient-index {
-    order: 0;
+  .ingredient-row {
+    padding: 10px;
+    gap: 8px;
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto auto;
+    flex-wrap: wrap;
   }
 
-  .ingredient-actions {
-    order: 0;
-    margin-left: auto;
+  .ingredient-index {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    flex: none;
   }
 
   .ingredient-name {
+    grid-column: 2;
+    grid-row: 1;
     width: 100%;
     flex: none;
-    order: 1;
-    margin-top: 4px;
+    min-width: 0;
+  }
+
+  .ingredient-actions {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+    flex: none;
+  }
+
+  .ingredient-actions .el-button {
+    padding: 8px 10px;
+    font-size: 16px;
+    min-width: 36px;
+    min-height: 36px;
   }
 
   .ingredient-quantity {
-    flex: 1;
+    grid-column: 1 / 3;
+    grid-row: 2;
+    width: 100%;
+    flex: none;
     min-width: 0;
-    order: 2;
+  }
+
+  .ingredient-quantity :deep(.el-input-number) {
+    width: 100%;
   }
 
   .ingredient-unit {
-    flex: 1;
-    min-width: 0;
-    order: 3;
+    grid-column: 3;
+    grid-row: 2;
+    width: 100%;
+    min-width: 75px;
+    flex: none;
   }
 
   .ingredient-remark {
+    grid-column: 1 / -1;
+    grid-row: 3;
     width: 100%;
     flex: none;
-    order: 4;
+    min-width: 0;
   }
 
   .index-badge {
     width: 24px;
     height: 24px;
+    font-size: 11px;
+    border-radius: 5px;
+  }
+
+  /* 空状态 */
+  .empty-state {
+    padding: 30px 0;
+  }
+
+  .empty-state :deep(.el-empty__description) {
+    font-size: 13px;
+  }
+}
+
+/* 超小屏幕 (<400px) */
+@media (max-width: 400px) {
+  .page-title {
+    font-size: 16px;
+  }
+
+  .header-actions .el-button {
+    padding: 6px 8px;
     font-size: 12px;
+  }
+
+  .info-card :deep(.el-card__header),
+  .ingredients-card :deep(.el-card__header) {
+    padding: 8px 10px;
+  }
+
+  .info-card :deep(.el-card__body),
+  .ingredients-card :deep(.el-card__body) {
+    padding: 10px;
+  }
+
+  .ingredient-row {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .index-badge {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+  }
+
+  .ingredient-unit {
+    min-width: 70px;
+  }
+
+  .ingredient-actions .el-button {
+    padding: 6px 8px;
+    min-width: 32px;
+    min-height: 32px;
+    font-size: 14px;
   }
 }
 </style>

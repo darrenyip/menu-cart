@@ -1,5 +1,6 @@
 <template>
   <div class="recipes-page">
+    <div class="page-container">
     <!-- 页面头部 -->
     <div class="page-header">
       <h2 class="page-title">菜谱管理</h2>
@@ -101,6 +102,7 @@
         />
       </div>
     </el-card>
+    </div>
   </div>
 </template>
 
@@ -323,6 +325,12 @@ export default {
   padding: 0;
 }
 
+/* 页面容器 - 限制最大宽度 */
+.page-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -443,16 +451,266 @@ export default {
   color: #059669;
 }
 
-/* 响应式 */
-@media (max-width: 576px) {
+/* ================================
+   响应式样式
+   ================================ */
+
+/* 平板端 (768px - 1024px) */
+@media (max-width: 1024px) {
+  .page-container {
+    max-width: 100%;
+  }
+
+  .search-input {
+    max-width: 400px;
+  }
+
+  .table-card :deep(.el-card__body) {
+    padding: 16px;
+  }
+}
+
+/* 小平板 (576px - 768px) */
+@media (max-width: 768px) {
   .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .add-btn {
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+
+  .search-bar {
+    margin-bottom: 16px;
   }
 
   .search-input {
     max-width: 100%;
+  }
+
+  .search-input :deep(.el-input-group__append) {
+    padding: 0 12px;
+  }
+
+  .search-tips {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* 表格卡片 */
+  .table-card {
+    border-radius: 10px;
+  }
+
+  .table-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+
+  /* 隐藏分类列 */
+  .table-card :deep(.el-table__header-wrapper th:nth-child(2)),
+  .table-card :deep(.el-table__body-wrapper td:nth-child(2)) {
+    display: none;
+  }
+
+  /* 分页调整 */
+  .pagination-wrap {
+    margin-top: 16px;
+    padding-top: 12px;
+  }
+
+  .pagination-wrap :deep(.el-pagination) {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .pagination-wrap :deep(.el-pagination__sizes),
+  .pagination-wrap :deep(.el-pagination__jump) {
+    display: none;
+  }
+}
+
+/* 手机端 (<576px) */
+@media (max-width: 576px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .page-title {
+    font-size: 17px;
+  }
+
+  .add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .search-bar {
+    margin-bottom: 14px;
+  }
+
+  .search-input {
+    max-width: 100%;
+  }
+
+  .search-input :deep(.el-input__wrapper) {
+    border-radius: 8px 0 0 8px;
+  }
+
+  .search-input :deep(.el-input-group__append) {
+    border-radius: 0 8px 8px 0;
+    padding: 0 10px;
+  }
+
+  .search-input :deep(.el-input-group__append .el-button span:last-child) {
+    display: none;
+  }
+
+  .search-tips {
+    margin-top: 8px;
+    gap: 6px;
+  }
+
+  /* 表格卡片 */
+  .table-card {
+    border-radius: 8px;
+  }
+
+  .table-card :deep(.el-card__body) {
+    padding: 10px;
+  }
+
+  /* 表格样式 */
+  .table-card :deep(.el-table) {
+    font-size: 13px;
+  }
+
+  .table-card :deep(.el-table__header th) {
+    padding: 8px 0;
+    font-size: 13px;
+  }
+
+  .table-card :deep(.el-table__body td) {
+    padding: 10px 0;
+  }
+
+  /* 隐藏分类和原料数量列 */
+  .table-card :deep(.el-table__header-wrapper th:nth-child(2)),
+  .table-card :deep(.el-table__body-wrapper td:nth-child(2)),
+  .table-card :deep(.el-table__header-wrapper th:nth-child(3)),
+  .table-card :deep(.el-table__body-wrapper td:nth-child(3)) {
+    display: none;
+  }
+
+  .recipe-name {
+    gap: 6px;
+  }
+
+  .recipe-icon {
+    font-size: 16px;
+  }
+
+  /* 操作列 */
+  .table-card :deep(.el-table__fixed-right) {
+    right: 0 !important;
+  }
+
+  .table-card :deep(.el-button--small) {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .table-card :deep(.el-button--small .el-icon) {
+    margin-right: 2px;
+  }
+
+  /* 分页 */
+  .pagination-wrap {
+    margin-top: 14px;
+    padding-top: 10px;
+  }
+
+  .pagination-wrap :deep(.el-pagination) {
+    gap: 4px;
+  }
+
+  .pagination-wrap :deep(.el-pagination .el-pagination__total) {
+    font-size: 12px;
+  }
+
+  .pagination-wrap :deep(.el-pager li) {
+    min-width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .pagination-wrap :deep(.btn-prev),
+  .pagination-wrap :deep(.btn-next) {
+    min-width: 28px;
+    height: 28px;
+  }
+}
+
+/* 超小屏幕 (<400px) */
+@media (max-width: 400px) {
+  .page-title {
+    font-size: 16px;
+  }
+
+  .add-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .table-card :deep(.el-card__body) {
+    padding: 8px;
+  }
+
+  .table-card :deep(.el-table) {
+    font-size: 12px;
+  }
+
+  .recipe-name {
+    gap: 4px;
+  }
+
+  .recipe-icon {
+    font-size: 14px;
+  }
+
+  .table-card :deep(.el-button--small) {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  /* 隐藏按钮文字，只显示图标 */
+  .table-card :deep(.el-button--small span:last-child) {
+    display: none;
+  }
+
+  .table-card :deep(.el-button--small .el-icon) {
+    margin-right: 0;
+    font-size: 14px;
+  }
+
+  .pagination-wrap :deep(.el-pager li) {
+    min-width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  .pagination-wrap :deep(.btn-prev),
+  .pagination-wrap :deep(.btn-next) {
+    min-width: 24px;
+    height: 24px;
   }
 }
 </style>

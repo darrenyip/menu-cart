@@ -1,5 +1,6 @@
 <template>
   <div class="ingredients-page">
+    <div class="page-container">
     <!-- 页面头部 -->
     <div class="page-header">
       <h2 class="page-title">原料管理</h2>
@@ -98,6 +99,8 @@
         />
       </div>
     </el-card>
+
+    </div>
 
     <!-- 新增/编辑原料对话框 -->
     <el-dialog
@@ -425,6 +428,12 @@ export default {
   padding: 0;
 }
 
+/* 页面容器 - 限制最大宽度 */
+.page-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
 /* 页面头部 */
 .page-header {
   display: flex;
@@ -628,16 +637,359 @@ export default {
   font-weight: 500;
 }
 
-/* 响应式 */
-@media (max-width: 576px) {
+/* ================================
+   响应式样式
+   ================================ */
+
+/* 平板端 (768px - 1024px) */
+@media (max-width: 1024px) {
+  .page-container {
+    max-width: 100%;
+  }
+
+  .search-input {
+    max-width: 380px;
+  }
+
+  .table-card :deep(.el-card__body) {
+    padding: 16px;
+  }
+
+  .edit-dialog :deep(.el-dialog) {
+    width: 90% !important;
+    max-width: 520px;
+  }
+}
+
+/* 小平板 (576px - 768px) */
+@media (max-width: 768px) {
   .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .add-btn {
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+
+  .search-bar {
+    margin-bottom: 16px;
   }
 
   .search-input {
     max-width: 100%;
+  }
+
+  .search-input :deep(.el-input-group__append) {
+    padding: 0 12px;
+  }
+
+  .search-result {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* 表格卡片 */
+  .table-card {
+    border-radius: 10px;
+  }
+
+  .table-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+
+  /* 隐藏换算列 */
+  .table-card :deep(.el-table__header-wrapper th:nth-child(3)),
+  .table-card :deep(.el-table__body-wrapper td:nth-child(3)) {
+    display: none;
+  }
+
+  /* 分页调整 */
+  .pagination-wrap {
+    margin-top: 16px;
+    padding-top: 12px;
+  }
+
+  .pagination-wrap :deep(.el-pagination) {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .pagination-wrap :deep(.el-pagination__sizes),
+  .pagination-wrap :deep(.el-pagination__jump) {
+    display: none;
+  }
+
+  /* 对话框 */
+  .edit-dialog :deep(.el-dialog) {
+    width: 92% !important;
+    max-width: 480px;
+    margin: 5vh auto !important;
+  }
+
+  .edit-dialog :deep(.el-dialog__body) {
+    padding: 16px 20px;
+  }
+
+  /* 对话框表单两列变一列 */
+  .edit-dialog :deep(.el-col-12) {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+}
+
+/* 手机端 (<576px) */
+@media (max-width: 576px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .page-title {
+    font-size: 17px;
+  }
+
+  .add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .search-bar {
+    margin-bottom: 14px;
+  }
+
+  .search-input {
+    max-width: 100%;
+  }
+
+  .search-input :deep(.el-input__wrapper) {
+    border-radius: 8px 0 0 8px;
+  }
+
+  .search-input :deep(.el-input-group__append) {
+    border-radius: 0 8px 8px 0;
+    padding: 0 10px;
+  }
+
+  .search-input :deep(.el-input-group__append .el-button span:last-child) {
+    display: none;
+  }
+
+  .search-result {
+    margin-top: 8px;
+    gap: 6px;
+  }
+
+  /* 表格卡片 */
+  .table-card {
+    border-radius: 8px;
+  }
+
+  .table-card :deep(.el-card__body) {
+    padding: 10px;
+  }
+
+  /* 表格样式 */
+  .table-card :deep(.el-table) {
+    font-size: 13px;
+  }
+
+  .table-card :deep(.el-table__header th) {
+    padding: 8px 0;
+    font-size: 13px;
+  }
+
+  .table-card :deep(.el-table__body td) {
+    padding: 10px 0;
+  }
+
+  /* 隐藏采购信息和换算列 */
+  .table-card :deep(.el-table__header-wrapper th:nth-child(2)),
+  .table-card :deep(.el-table__body-wrapper td:nth-child(2)),
+  .table-card :deep(.el-table__header-wrapper th:nth-child(3)),
+  .table-card :deep(.el-table__body-wrapper td:nth-child(3)) {
+    display: none;
+  }
+
+  .ingredient-name {
+    font-size: 14px;
+  }
+
+  /* 操作按钮 */
+  .action-btns {
+    gap: 6px;
+  }
+
+  .action-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+    min-width: 50px;
+  }
+
+  /* 操作列 */
+  .table-card :deep(.el-table__fixed-right) {
+    right: 0 !important;
+  }
+
+  /* 分页 */
+  .pagination-wrap {
+    margin-top: 14px;
+    padding-top: 10px;
+  }
+
+  .pagination-wrap :deep(.el-pagination) {
+    gap: 4px;
+  }
+
+  .pagination-wrap :deep(.el-pagination .el-pagination__total) {
+    font-size: 12px;
+  }
+
+  .pagination-wrap :deep(.el-pager li) {
+    min-width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .pagination-wrap :deep(.btn-prev),
+  .pagination-wrap :deep(.btn-next) {
+    min-width: 28px;
+    height: 28px;
+  }
+
+  /* 对话框 */
+  .edit-dialog :deep(.el-dialog) {
+    width: 95% !important;
+    margin: 3vh auto !important;
+    border-radius: 12px;
+  }
+
+  .edit-dialog :deep(.el-dialog__header) {
+    padding: 14px 16px 12px;
+  }
+
+  .edit-dialog :deep(.el-dialog__title) {
+    font-size: 16px;
+  }
+
+  .edit-dialog :deep(.el-dialog__body) {
+    padding: 12px 16px;
+  }
+
+  .edit-dialog :deep(.el-dialog__footer) {
+    padding: 12px 16px 16px;
+  }
+
+  .edit-dialog :deep(.el-form-item) {
+    margin-bottom: 14px;
+  }
+
+  .edit-dialog :deep(.el-form-item__label) {
+    font-size: 13px;
+    padding-bottom: 4px;
+  }
+
+  .edit-dialog :deep(.el-divider) {
+    margin: 16px 0;
+  }
+
+  .edit-dialog :deep(.el-divider__text) {
+    font-size: 12px;
+    padding: 0 8px;
+  }
+
+  .conversion-preview {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+
+  /* 对话框按钮 */
+  .edit-dialog :deep(.el-dialog__footer .el-button) {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+}
+
+/* 超小屏幕 (<400px) */
+@media (max-width: 400px) {
+  .page-title {
+    font-size: 16px;
+  }
+
+  .add-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .table-card :deep(.el-card__body) {
+    padding: 8px;
+  }
+
+  .table-card :deep(.el-table) {
+    font-size: 12px;
+  }
+
+  .ingredient-name {
+    font-size: 13px;
+  }
+
+  .action-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+    min-width: 44px;
+  }
+
+  .pagination-wrap :deep(.el-pager li) {
+    min-width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  .pagination-wrap :deep(.btn-prev),
+  .pagination-wrap :deep(.btn-next) {
+    min-width: 24px;
+    height: 24px;
+  }
+
+  /* 对话框 */
+  .edit-dialog :deep(.el-dialog) {
+    width: 98% !important;
+    margin: 2vh auto !important;
+  }
+
+  .edit-dialog :deep(.el-dialog__header) {
+    padding: 12px 14px 10px;
+  }
+
+  .edit-dialog :deep(.el-dialog__body) {
+    padding: 10px 14px;
+  }
+
+  .edit-dialog :deep(.el-dialog__footer) {
+    padding: 10px 14px 14px;
+  }
+
+  .edit-dialog :deep(.el-form-item) {
+    margin-bottom: 12px;
+  }
+
+  .conversion-preview {
+    padding: 8px 10px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .edit-dialog :deep(.el-dialog__footer .el-button) {
+    padding: 8px 14px;
+    font-size: 13px;
   }
 }
 </style>

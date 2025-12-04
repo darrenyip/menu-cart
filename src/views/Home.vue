@@ -1,5 +1,6 @@
 <template>
   <div class="home-page">
+    <div class="page-container">
     <!-- 欢迎区域 -->
     <div class="welcome-section">
       <div class="welcome-content">
@@ -94,32 +95,22 @@
               v-for="menu in recentMenus"
               :key="menu.id"
               class="menu-item"
-              :class="{ 'is-today': isToday(menu.date), 'is-upcoming': isUpcoming(menu.date) }"
+              @click="editMenu(menu)"
             >
-              <div class="menu-date-badge">
-                <span class="date-month">{{ formatMonth(menu.date) }}</span>
-                <span class="date-day">{{ formatDay(menu.date) }}</span>
-                <span class="date-weekday">{{ formatWeekday(menu.date) }}</span>
+              <div class="menu-icon-wrap">
+                <el-icon><Notebook /></el-icon>
               </div>
               <div class="menu-info">
                 <h4 class="menu-name">{{ menu.name }}</h4>
                 <div class="menu-meta">
-                  <el-tag size="small" type="info" effect="plain">
+                  <span class="meta-item">
                     <el-icon><Dish /></el-icon>
                     {{ menu.dishCount || 0 }} 道菜
-                  </el-tag>
-                  <el-tag v-if="isToday(menu.date)" size="small" type="success" effect="dark">
-                    今日菜单
-                  </el-tag>
-                  <el-tag v-else-if="isUpcoming(menu.date)" size="small" type="warning" effect="plain">
-                    即将到来
-                  </el-tag>
+                  </span>
                 </div>
               </div>
-              <div class="menu-actions">
-                <el-button text circle @click="viewMenu(menu)">
-                  <el-icon><View /></el-icon>
-                </el-button>
+              <div class="menu-arrow">
+                <el-icon><ArrowRight /></el-icon>
               </div>
             </div>
           </div>
@@ -167,6 +158,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
 
     <!-- 今日菜单提醒弹窗 -->
@@ -340,6 +332,10 @@ export default {
       return `${month}月${day}日 ${weekdays[date.getDay()]}`
     },
 
+    editMenu(menu) {
+      this.$router.push(`/menu/edit/${menu.id}`)
+    },
+
     viewMenu(menu) {
       this.selectedMenu = menu
       this.menuDialogVisible = true
@@ -356,6 +352,12 @@ export default {
 <style scoped>
 .home-page {
   min-height: 100%;
+}
+
+/* 页面容器 - 限制最大宽度 */
+.page-container {
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 /* 欢迎区域 - 深色科技风格 */
@@ -703,83 +705,48 @@ export default {
 .menu-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: 14px;
+  padding: 14px 16px;
   background: #f8fafc;
-  border-radius: 12px;
-  transition: all 0.25s ease;
+  border-radius: 10px;
+  transition: all 0.2s ease;
   border: 1px solid transparent;
+  cursor: pointer;
 }
 
 .menu-item:hover {
-  background: #f1f5f9;
-  border-color: rgba(16, 185, 129, 0.15);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(6, 182, 212, 0.04) 100%);
+  border-color: rgba(16, 185, 129, 0.2);
 }
 
-.menu-item.is-today {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%);
-  border-color: rgba(16, 185, 129, 0.25);
+.menu-item:active {
+  transform: scale(0.99);
 }
 
-.menu-item.is-upcoming {
-  background: rgba(245, 158, 11, 0.06);
-  border-color: rgba(245, 158, 11, 0.2);
-}
-
-.menu-date-badge {
-  width: 58px;
-  height: 70px;
-  background: #fff;
-  border-radius: 12px;
+.menu-icon-wrap {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.1) 100%);
+  border-radius: 10px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  transition: all 0.25s ease;
+  color: #10b981;
+  font-size: 20px;
+  transition: all 0.2s ease;
 }
 
-.menu-item:hover .menu-date-badge {
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
-}
-
-.menu-item.is-today .menu-date-badge {
+.menu-item:hover .menu-icon-wrap {
   background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
-  border: none;
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
-}
-
-.menu-item.is-today .menu-date-badge .date-month,
-.menu-item.is-today .menu-date-badge .date-day,
-.menu-item.is-today .menu-date-badge .date-weekday {
   color: #fff;
-}
-
-.date-month {
-  font-size: 11px;
-  color: #94a3b8;
-  font-weight: 600;
-}
-
-.date-day {
-  font-size: 24px;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.1;
-}
-
-.date-weekday {
-  font-size: 11px;
-  color: #64748b;
-  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .menu-info {
@@ -788,7 +755,7 @@ export default {
 }
 
 .menu-name {
-  margin: 0 0 8px 0;
+  margin: 0 0 4px 0;
   font-size: 15px;
   font-weight: 600;
   color: #0f172a;
@@ -800,27 +767,32 @@ export default {
 .menu-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.menu-meta .el-tag {
+.meta-item {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.menu-actions {
-  flex-shrink: 0;
-}
-
-.menu-actions :deep(.el-button) {
+  font-size: 13px;
   color: #64748b;
 }
 
-.menu-actions :deep(.el-button:hover) {
+.meta-item .el-icon {
+  font-size: 14px;
   color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
+}
+
+.menu-arrow {
+  flex-shrink: 0;
+  color: #cbd5e1;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.menu-item:hover .menu-arrow {
+  color: #10b981;
+  transform: translateX(3px);
 }
 
 /* 快捷入口 */
@@ -921,6 +893,10 @@ export default {
 
 /* 平板端 (768px - 1024px) */
 @media (max-width: 1024px) {
+  .page-container {
+    max-width: 100%;
+  }
+
   .main-content {
     grid-template-columns: 1fr;
   }
@@ -1030,27 +1006,27 @@ export default {
   }
 
   .menu-list {
-    gap: 10px;
+    gap: 8px;
   }
 
   .menu-item {
-    padding: 12px;
-    border-radius: 10px;
+    padding: 12px 14px;
+    border-radius: 8px;
     gap: 12px;
   }
 
-  .menu-date-badge {
-    width: 50px;
-    height: 60px;
-    border-radius: 10px;
-  }
-
-  .date-day {
-    font-size: 20px;
+  .menu-icon-wrap {
+    width: 38px;
+    height: 38px;
+    font-size: 18px;
   }
 
   .menu-name {
     font-size: 14px;
+  }
+
+  .meta-item {
+    font-size: 12px;
   }
 
   .quick-grid {
@@ -1201,49 +1177,41 @@ export default {
   }
 
   .menu-list {
-    gap: 8px;
+    gap: 6px;
   }
 
   .menu-item {
-    padding: 10px;
+    padding: 10px 12px;
     border-radius: 8px;
     gap: 10px;
   }
 
-  .menu-date-badge {
-    width: 44px;
-    height: 54px;
+  .menu-icon-wrap {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
     border-radius: 8px;
-  }
-
-  .date-month {
-    font-size: 10px;
-  }
-
-  .date-day {
-    font-size: 18px;
-  }
-
-  .date-weekday {
-    font-size: 10px;
   }
 
   .menu-name {
     font-size: 13px;
-    margin-bottom: 6px;
+    margin-bottom: 2px;
   }
 
   .menu-meta {
-    gap: 6px;
+    gap: 8px;
   }
 
-  .menu-meta .el-tag {
-    font-size: 10px;
-    padding: 2px 6px;
+  .meta-item {
+    font-size: 11px;
   }
 
-  .menu-actions :deep(.el-button) {
-    padding: 6px;
+  .meta-item .el-icon {
+    font-size: 12px;
+  }
+
+  .menu-arrow {
+    font-size: 14px;
   }
 
   .quick-grid {
@@ -1329,16 +1297,22 @@ export default {
   }
 
   .menu-item {
-    padding: 8px;
+    padding: 8px 10px;
+    gap: 8px;
   }
 
-  .menu-date-badge {
-    width: 40px;
-    height: 50px;
+  .menu-icon-wrap {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
   }
 
-  .date-day {
-    font-size: 16px;
+  .menu-name {
+    font-size: 12px;
+  }
+
+  .meta-item {
+    font-size: 10px;
   }
 
   .quick-item {
