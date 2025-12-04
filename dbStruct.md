@@ -24,13 +24,14 @@
 
 ### 2. `cart_recipes` - 菜谱表
 
-| 字段名        | 类型      | 说明         |
-| ------------- | --------- | ------------ |
-| `id`          | text (PK) | 自动生成     |
-| `name`        | text      | 菜谱名称     |
-| `description` | text      | 描述（可选） |
-| `created`     | datetime  | 自动生成     |
-| `updated`     | datetime  | 自动生成     |
+| 字段名        | 类型      | 说明                              |
+| ------------- | --------- | --------------------------------- |
+| `id`          | text (PK) | 自动生成                          |
+| `name`        | text      | 菜谱名称                          |
+| `category`    | text      | 菜品分类（荤菜/半荤/素菜/炖汤等） |
+| `description` | text      | 描述（可选）                      |
+| `created`     | datetime  | 自动生成                          |
+| `updated`     | datetime  | 自动生成                          |
 
 ---
 

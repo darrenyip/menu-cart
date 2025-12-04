@@ -318,44 +318,68 @@
         <div class="card-header">
           <div class="header-title">
             <el-icon class="card-icon"><DataAnalysis /></el-icon>
-            <span>原料汇总</span>
+            <span>采购清单</span>
             <el-tag type="success" size="small" style="margin-left: 8px">
               {{ ingredientSummary.length }} 种原料
             </el-tag>
           </div>
           <div class="summary-actions">
             <el-button type="primary" @click="copyToClipboard">
-              <el-icon><CopyDocument /></el-icon>复制清单
+              <el-icon><CopyDocument /></el-icon>复制
             </el-button>
             <el-button type="success" @click="exportToExcel">
-              <el-icon><Download /></el-icon>导出Excel
+              <el-icon><Download /></el-icon>导出
             </el-button>
           </div>
         </div>
       </template>
 
-      <div class="summary-grid">
+      <!-- 采购清单表格 -->
+      <div class="purchase-list">
+        <!-- 表头 -->
+        <div class="purchase-header">
+          <span class="col-name">原料名称</span>
+          <span class="col-quantity">采购量</span>
+          <span class="col-source">来源</span>
+        </div>
+        
+        <!-- 原料行 -->
         <div 
-          v-for="item in ingredientSummary" 
+          v-for="(item, index) in ingredientSummary" 
           :key="item.isExtra ? `${item.name}_${item.displayUnit}` : item.name" 
-          class="summary-item"
-          :class="{ 'is-extra': item.isExtra }"
+          class="purchase-row"
+          :class="{ 'is-extra': item.isExtra, 'is-even': index % 2 === 1 }"
         >
-          <div class="summary-item-header">
-            <span class="item-name">{{ item.name }}</span>
-            <span class="item-quantity">{{ item.displayQuantity }} {{ item.displayUnit }}</span>
+          <div class="col-name">
+            <span class="ingredient-name">{{ item.name }}</span>
           </div>
-          <div class="summary-item-dishes">
-            <span 
-              v-for="dish in item.dishes" 
-              :key="dish.name + dish.portions"
-              class="dish-source"
-            >
-              {{ dish.name }} <span class="dish-detail">×{{ dish.portions }}份 ({{ dish.displayQuantity }}{{ dish.displayUnit }})</span>
-            </span>
+          <div class="col-quantity">
+            <span class="quantity-value">{{ item.displayQuantity }}</span>
+            <span class="quantity-unit">{{ item.displayUnit }}</span>
+          </div>
+          <div class="col-source">
+            <div class="source-tags">
+              <el-tooltip 
+                v-for="dish in item.dishes" 
+                :key="dish.name + dish.portions"
+                :content="`${dish.displayQuantity}${dish.displayUnit}`"
+                placement="top"
+              >
+                <el-tag 
+                  :type="dish.name === '其他采购' ? 'warning' : 'info'" 
+                  size="small"
+                  effect="plain"
+                  class="source-tag"
+                >
+                  {{ dish.name }}
+                  <span v-if="dish.portions > 1" class="portions-badge">×{{ dish.portions }}</span>
+                </el-tag>
+              </el-tooltip>
+            </div>
           </div>
         </div>
       </div>
+
     </el-card>
     </div>
   </div>
@@ -632,6 +656,7 @@ export default {
           value: recipe.name,
           id: recipe.id,
           name: recipe.name,
+          category: recipe.category || '',
           ingredients: recipe.ingredients || [],
         }))
 
@@ -961,12 +986,9 @@ export default {
           }
         }
 
-        // 第三步：处理所有菜品，确保都存入菜谱库
+        // 第三步：处理所有菜品，同步到菜谱库
         for (const dish of this.dishList) {
           if (!dish.name?.trim()) continue
-
-          // 如果已经有 recipeId，说明是从菜谱库选择的，跳过
-          if (dish.recipeId) continue
 
           // 准备菜谱的原料数据
           const recipeMaterials = dish.ingredients
@@ -978,27 +1000,44 @@ export default {
               unit: ing.unit || '',
             }))
 
-          // 创建新菜谱到菜谱库（包含分类信息）
-          try {
-            const newRecipe = await recipesApi.create(
-              { 
-                name: dish.name,
-                category: dish.category || '',
-              },
-              recipeMaterials
-            )
-            dish.recipeId = newRecipe.id
+          // 如果已经有 recipeId，更新已存在的菜谱
+          if (dish.recipeId) {
+            try {
+              await recipesApi.update(
+                dish.recipeId,
+                {
+                  name: dish.name,
+                  category: dish.category || '',
+                },
+                recipeMaterials
+              )
+              console.log(`菜谱「${dish.name}」已同步更新`)
+            } catch (error) {
+              console.error('更新菜谱失败:', dish.name, error)
+            }
+          } else {
+            // 创建新菜谱到菜谱库（包含分类信息）
+            try {
+              const newRecipe = await recipesApi.create(
+                { 
+                  name: dish.name,
+                  category: dish.category || '',
+                },
+                recipeMaterials
+              )
+              dish.recipeId = newRecipe.id
 
-            // 同时更新本地菜谱列表供后续使用
-            this.recipeList.push({
-              value: newRecipe.name,
-              id: newRecipe.id,
-              name: newRecipe.name,
-              category: dish.category || '',
-              ingredients: recipeMaterials,
-            })
-          } catch (error) {
-            console.error('创建菜谱失败:', dish.name, error)
+              // 同时更新本地菜谱列表供后续使用
+              this.recipeList.push({
+                value: newRecipe.name,
+                id: newRecipe.id,
+                name: newRecipe.name,
+                category: dish.category || '',
+                ingredients: recipeMaterials,
+              })
+            } catch (error) {
+              console.error('创建菜谱失败:', dish.name, error)
+            }
           }
         }
 
@@ -1052,9 +1091,8 @@ export default {
 
         // 提示同步信息
         const newMaterialsCount = materialCache.size
-        const newRecipesCount = this.dishList.filter((d) => !d.recipeId || d.recipeId).length
-        if (newMaterialsCount > 0 || newRecipesCount > 0) {
-          console.log(`已同步: ${newMaterialsCount} 个新原料, ${newRecipesCount} 个新菜谱`)
+        if (newMaterialsCount > 0) {
+          console.log(`已同步: ${newMaterialsCount} 个新原料到原料库`)
         }
 
         setTimeout(() => {
@@ -1142,9 +1180,62 @@ export default {
 
     async copyToClipboard() {
       try {
-        const copyText = this.ingredientSummary
-          .map((item) => `${item.name} ${item.displayQuantity}${item.displayUnit}`)
-          .join('\n')
+        // 第一部分：采购汇总
+        const summaryLines = ['【采购清单】']
+        this.ingredientSummary.forEach((item) => {
+          summaryLines.push(`${item.name} ${item.displayQuantity}${item.displayUnit}`)
+        })
+
+        // 第二部分：菜品明细
+        const detailLines = ['\n【菜品明细】']
+        
+        // 按菜品分组显示原料
+        this.dishList.forEach((dish) => {
+          if (!dish.name?.trim()) return
+          
+          const portions = dish.portions || 1
+          const category = dish.category ? `[${dish.category}]` : ''
+          detailLines.push(`\n${dish.name} ${category} ×${portions}份`)
+          
+          // 获取有效原料
+          const validIngredients = dish.ingredients.filter(
+            (ing) => ing.name?.trim() && ing.quantity > 0
+          )
+          
+          if (validIngredients.length > 0) {
+            // 单份用量
+            detailLines.push('  📋 单份用量:')
+            validIngredients.forEach((ing) => {
+              const singleConverted = this.convertToJin(ing.quantity, ing.unit || '份')
+              detailLines.push(`     ${ing.name} ${singleConverted.quantity}${singleConverted.unit}`)
+            })
+            
+            // 采购总量（仅当份数大于1时显示）
+            if (portions > 1) {
+              detailLines.push(`  🛒 采购总量 (×${portions}份):`)
+              validIngredients.forEach((ing) => {
+                const totalQuantity = ing.quantity * portions
+                const totalConverted = this.convertToJin(totalQuantity, ing.unit || '份')
+                detailLines.push(`     ${ing.name} ${totalConverted.quantity}${totalConverted.unit}`)
+              })
+            }
+          }
+        })
+
+        // 其他采购
+        const validExtraPurchases = this.extraPurchases.filter(
+          (item) => item.name?.trim() && item.quantity > 0
+        )
+        if (validExtraPurchases.length > 0) {
+          detailLines.push('\n其他采购')
+          validExtraPurchases.forEach((item) => {
+            const converted = this.convertToJin(item.quantity, item.unit || '份')
+            detailLines.push(`  - ${item.name} ${converted.quantity}${converted.unit}`)
+          })
+        }
+
+        // 合并两部分
+        const copyText = [...summaryLines, ...detailLines].join('\n')
 
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(copyText)
@@ -1161,7 +1252,7 @@ export default {
           textArea.remove()
         }
 
-        ElMessage.success('原料清单已复制到剪切板')
+        ElMessage.success('采购清单已复制到剪切板')
       } catch (error) {
         console.error('复制失败:', error)
         ElMessage.error('复制失败，请手动复制')
@@ -1726,95 +1817,111 @@ export default {
   border-bottom: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-/* 原料汇总网格布局 */
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.summary-item {
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+/* 采购清单表格样式 */
+.purchase-list {
   border: 1px solid rgba(16, 185, 129, 0.15);
-  border-radius: 12px;
-  padding: 16px;
-  transition: all 0.25s ease;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-.summary-item:hover {
-  border-color: rgba(16, 185, 129, 0.35);
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.1);
-  transform: translateY(-2px);
+.purchase-header {
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.08) 100%);
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.15);
 }
 
-.summary-item.is-extra {
-  background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%);
-  border-color: rgba(245, 158, 11, 0.25);
-}
-
-.summary-item.is-extra:hover {
-  border-color: rgba(245, 158, 11, 0.4);
-  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.1);
-}
-
-.summary-item-header {
-  display: flex;
-  justify-content: space-between;
+.purchase-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr;
+  gap: 12px;
+  padding: 14px 16px;
   align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  transition: background-color 0.2s ease;
 }
 
-.summary-item.is-extra .summary-item-header {
-  border-bottom-color: rgba(245, 158, 11, 0.15);
+.purchase-row:last-child {
+  border-bottom: none;
 }
 
-.item-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
+.purchase-row:hover {
+  background-color: rgba(16, 185, 129, 0.04);
 }
 
-.item-quantity {
+.purchase-row.is-even {
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+.purchase-row.is-even:hover {
+  background-color: rgba(16, 185, 129, 0.06);
+}
+
+.purchase-row.is-extra {
+  background-color: rgba(245, 158, 11, 0.04);
+}
+
+.purchase-row.is-extra:hover {
+  background-color: rgba(245, 158, 11, 0.08);
+}
+
+.col-name {
+  display: flex;
+  align-items: center;
+}
+
+.ingredient-name {
   font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.col-quantity {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.quantity-value {
+  font-size: 18px;
   font-weight: 700;
   color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  padding: 4px 12px;
-  border-radius: 20px;
 }
 
-.summary-item.is-extra .item-quantity {
+.purchase-row.is-extra .quantity-value {
   color: #f59e0b;
-  background: rgba(245, 158, 11, 0.15);
 }
 
-.summary-item-dishes {
+.quantity-unit {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.col-source {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+}
+
+.source-tags {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
-.dish-source {
-  font-size: 13px;
-  color: #475569;
-  padding: 6px 10px;
-  background: rgba(16, 185, 129, 0.04);
-  border-radius: 6px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.source-tag {
+  cursor: default;
+  border-radius: 12px;
 }
 
-.summary-item.is-extra .dish-source {
-  background: rgba(245, 158, 11, 0.06);
-}
-
-.dish-detail {
-  font-size: 12px;
-  color: #94a3b8;
-  font-weight: 500;
+.source-tag .portions-badge {
+  margin-left: 2px;
+  font-weight: 600;
 }
 
 /* 菜品列表卡片按钮 */
@@ -2101,28 +2208,24 @@ export default {
     justify-self: end;
   }
 
-  /* 汇总网格 */
-  .summary-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 12px;
-  }
-
-  .summary-item {
-    padding: 14px;
-  }
-
-  .item-name {
-    font-size: 15px;
-  }
-
-  .item-quantity {
-    font-size: 14px;
-    padding: 3px 10px;
-  }
-
-  .dish-source {
+  /* 采购清单响应式 */
+  .purchase-header {
+    grid-template-columns: 1fr 100px 1fr;
+    padding: 10px 14px;
     font-size: 12px;
-    padding: 5px 8px;
+  }
+
+  .purchase-row {
+    grid-template-columns: 1fr 100px 1fr;
+    padding: 12px 14px;
+  }
+
+  .ingredient-name {
+    font-size: 14px;
+  }
+
+  .quantity-value {
+    font-size: 16px;
   }
 
   /* 添加按钮 */
@@ -2428,45 +2531,59 @@ export default {
     font-size: 13px;
   }
 
-  /* 汇总网格 */
-  .summary-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
+  /* 采购清单手机端样式 */
+  .purchase-header {
+    display: none;
   }
 
-  .summary-item {
+  .purchase-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     padding: 12px;
-    border-radius: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   }
 
-  .summary-item-header {
-    margin-bottom: 10px;
-    padding-bottom: 10px;
+  .purchase-row .col-name {
+    flex: 1 1 50%;
+    min-width: 0;
   }
 
-  .item-name {
+  .purchase-row .col-quantity {
+    flex: 0 0 auto;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 4px 10px;
+    border-radius: 16px;
+  }
+
+  .purchase-row.is-extra .col-quantity {
+    background: rgba(245, 158, 11, 0.1);
+  }
+
+  .purchase-row .col-source {
+    flex: 1 1 100%;
+    margin-top: 4px;
+  }
+
+  .ingredient-name {
     font-size: 14px;
   }
 
-  .item-quantity {
-    font-size: 13px;
-    padding: 3px 8px;
+  .quantity-value {
+    font-size: 14px;
   }
 
-  .summary-item-dishes {
+  .quantity-unit {
+    font-size: 12px;
+  }
+
+  .source-tags {
     gap: 4px;
   }
 
-  .dish-source {
+  .source-tag {
     font-size: 11px;
-    padding: 4px 8px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-  }
-
-  .dish-detail {
-    font-size: 10px;
+    padding: 2px 8px;
   }
 
   /* 添加按钮 */
@@ -2561,11 +2678,15 @@ export default {
     font-size: 14px;
   }
 
-  .summary-item {
+  .purchase-row {
     padding: 10px;
   }
 
-  .item-name {
+  .ingredient-name {
+    font-size: 13px;
+  }
+
+  .quantity-value {
     font-size: 13px;
   }
 
