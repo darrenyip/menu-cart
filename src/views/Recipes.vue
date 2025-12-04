@@ -8,20 +8,35 @@
       </el-button>
     </div>
 
-    <!-- 统计卡片 -->
-    <el-row :gutter="16" class="stats-row">
-      <el-col :span="8">
-        <div class="stat-card stat-card-total">
-          <div class="stat-icon">
-            <el-icon :size="28"><Document /></el-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ total }}</div>
-            <div class="stat-label">全部菜谱</div>
-          </div>
-        </div>
-      </el-col>
-    </el-row>
+    <!-- 搜索栏 -->
+    <div class="search-bar">
+      <el-input
+        v-model="searchKeyword"
+        placeholder="搜索菜谱名称或原料..."
+        size="large"
+        clearable
+        @keyup.enter="handleSearch"
+        @clear="handleClear"
+        class="search-input"
+      >
+        <template #prefix>
+          <el-icon><Search /></el-icon>
+        </template>
+        <template #append>
+          <el-button @click="handleSearch" :loading="searching">
+            <el-icon><Search /></el-icon>搜索
+          </el-button>
+        </template>
+      </el-input>
+      <div class="search-tips" v-if="searchKeyword && searchResult">
+        <el-tag type="info" size="small" effect="plain">
+          {{ searchResult }}
+        </el-tag>
+        <el-button text type="primary" size="small" @click="handleClear">
+          清除搜索
+        </el-button>
+      </div>
+    </div>
 
     <!-- 菜谱列表 -->
     <el-card class="table-card" shadow="hover">
@@ -36,7 +51,7 @@
           <template #default="scope">
             <div class="recipe-name">
               <el-icon class="recipe-icon"><Dish /></el-icon>
-              <span>{{ scope.row.name }}</span>
+              <span v-html="highlightKeyword(scope.row.name)"></span>
             </div>
           </template>
         </el-table-column>
@@ -51,6 +66,13 @@
               {{ getCategoryText(scope.row.category) }}
             </el-tag>
             <span v-else class="no-category">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="materialsCount" label="原料数量" width="120" align="center">
+          <template #default="scope">
+            <el-tag type="success" size="small" effect="plain">
+              {{ scope.row.materialsCount || 0 }} 种
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" fixed="right" width="160" align="center">
@@ -83,26 +105,31 @@
 </template>
 
 <script>
-import { Plus, Document, Dish, Edit, Delete } from '@element-plus/icons-vue'
+import { Plus, Dish, Edit, Delete, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import recipesApi from '@/api/recipes'
+import { getCategoryTagType } from '@/constants/dishCategories'
 
 export default {
   name: 'Recipes',
   components: {
     Plus,
-    Document,
     Dish,
     Edit,
     Delete,
+    Search,
   },
   data() {
     return {
       loading: false,
+      searching: false,
       currentPage: 1,
       pageSize: 10,
       total: 0,
       recipeList: [],
+      searchKeyword: '',
+      searchResult: '',
+      isSearchMode: false,
     }
   },
   mounted() {
@@ -113,8 +140,37 @@ export default {
     async loadData() {
       this.loading = true
       try {
-        const result = await recipesApi.getList(this.currentPage, this.pageSize)
-        this.recipeList = result.items
+        let result
+        
+        if (this.isSearchMode && this.searchKeyword.trim()) {
+          // 搜索模式：搜索菜谱名称和原料
+          result = await this.searchRecipes(this.searchKeyword.trim())
+        } else {
+          // 普通分页模式
+          result = await recipesApi.getList(this.currentPage, this.pageSize)
+        }
+        
+        // 获取每个菜谱的原料数量
+        const recipesWithCount = await Promise.all(
+          result.items.map(async (recipe) => {
+            try {
+              const detail = await recipesApi.getOne(recipe.id)
+              return {
+                ...recipe,
+                materialsCount: detail.materials?.length || 0,
+                materials: detail.materials || [],
+              }
+            } catch {
+              return {
+                ...recipe,
+                materialsCount: 0,
+                materials: [],
+              }
+            }
+          })
+        )
+        
+        this.recipeList = recipesWithCount
         this.total = result.totalItems
       } catch (error) {
         console.error('加载菜谱数据失败:', error)
@@ -123,24 +179,97 @@ export default {
         this.loading = false
       }
     },
+
+    // 搜索菜谱（支持菜谱名称和原料名称）
+    async searchRecipes(keyword) {
+      // 先搜索菜谱名称
+      const nameResults = await recipesApi.search(keyword)
+      
+      // 获取所有菜谱（用于搜索原料）
+      const allRecipes = await recipesApi.getAllWithMaterials()
+      
+      // 搜索包含该原料的菜谱
+      const ingredientResults = allRecipes.filter((recipe) =>
+        recipe.ingredients?.some((ing) =>
+          ing.name?.toLowerCase().includes(keyword.toLowerCase())
+        )
+      )
+      
+      // 合并结果并去重
+      const resultMap = new Map()
+      nameResults.forEach((r) => resultMap.set(r.id, r))
+      ingredientResults.forEach((r) => resultMap.set(r.id, r))
+      
+      const items = Array.from(resultMap.values())
+      
+      // 更新搜索结果提示
+      const nameCount = nameResults.length
+      const ingredientCount = ingredientResults.length
+      if (nameCount > 0 && ingredientCount > 0) {
+        this.searchResult = `找到 ${items.length} 个结果（${nameCount} 个菜谱名称匹配，${ingredientCount} 个原料匹配）`
+      } else if (nameCount > 0) {
+        this.searchResult = `找到 ${nameCount} 个菜谱名称匹配`
+      } else if (ingredientCount > 0) {
+        this.searchResult = `找到 ${ingredientCount} 个原料匹配`
+      } else {
+        this.searchResult = '未找到匹配结果'
+      }
+      
+      return {
+        items,
+        totalItems: items.length,
+      }
+    },
+
+    // 执行搜索
+    async handleSearch() {
+      if (!this.searchKeyword.trim()) {
+        this.handleClear()
+        return
+      }
+      
+      this.searching = true
+      this.isSearchMode = true
+      this.currentPage = 1
+      
+      try {
+        await this.loadData()
+      } finally {
+        this.searching = false
+      }
+    },
+
+    // 清除搜索
+    handleClear() {
+      this.searchKeyword = ''
+      this.searchResult = ''
+      this.isSearchMode = false
+      this.currentPage = 1
+      this.loadData()
+    },
+
+    // 高亮关键词
+    highlightKeyword(text) {
+      if (!this.searchKeyword.trim() || !text) return text
+      
+      const keyword = this.searchKeyword.trim()
+      const regex = new RegExp(`(${keyword})`, 'gi')
+      return text.replace(regex, '<span class="highlight">$1</span>')
+    },
+
     getCategoryText(category) {
-      const categoryMap = {
-        meat: '荤菜',
-        vegetable: '素菜',
-        soup: '汤品',
-        staple: '主食',
+      if (!category) return ''
+      // 兼容旧的英文分类值
+      const oldToNew = {
+        'meat': '荤菜',
+        'vegetable': '素菜',
+        'soup': '炖汤',
+        'staple': '主食',
       }
-      return categoryMap[category] || category
+      return oldToNew[category] || category
     },
-    getCategoryType(category) {
-      const typeMap = {
-        meat: 'danger',
-        vegetable: 'success',
-        soup: 'warning',
-        staple: 'info',
-      }
-      return typeMap[category] || 'info'
-    },
+    // 使用统一配置的分类颜色
+    getCategoryType: getCategoryTagType,
     handleSizeChange(val) {
       this.pageSize = val
       this.currentPage = 1
@@ -205,71 +334,63 @@ export default {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  color: #0f172a;
   letter-spacing: 0.5px;
 }
 
 .add-btn {
   border-radius: 8px;
   font-weight: 500;
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
-/* 统计卡片 */
-.stats-row {
+.add-btn:hover {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* 搜索栏 */
+.search-bar {
   margin-bottom: 20px;
 }
 
-.stat-card {
-  display: flex;
-  align-items: center;
-  padding: 20px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #fff 0%, #fafafa 100%);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
-  border: 1px solid #ebeef5;
+.search-input {
+  max-width: 500px;
 }
 
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+.search-input :deep(.el-input__wrapper) {
+  border-radius: 10px 0 0 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.stat-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 16px;
+.search-input :deep(.el-input-group__append) {
+  border-radius: 0 10px 10px 0;
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
-.stat-card-total .stat-icon {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.search-input :deep(.el-input-group__append .el-button) {
   color: #fff;
+  font-weight: 500;
 }
 
-.stat-content {
-  flex: 1;
+.search-input :deep(.el-input-group__append .el-button:hover) {
+  background: transparent;
 }
 
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1f2937;
-  line-height: 1.2;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: #6b7280;
-  margin-top: 4px;
+.search-tips {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
 }
 
 /* 表格卡片 */
 .table-card {
   border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .table-card :deep(.el-card__body) {
@@ -287,12 +408,21 @@ export default {
 }
 
 .recipe-icon {
-  color: #f59e0b;
+  color: #10b981;
   font-size: 18px;
 }
 
 .no-category {
-  color: #9ca3af;
+  color: #94a3b8;
+}
+
+/* 高亮样式 */
+.recipe-name :deep(.highlight) {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #059669;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 600;
 }
 
 /* 分页 */
@@ -304,10 +434,25 @@ export default {
   border-top: 1px solid #f0f0f0;
 }
 
+/* 表格按钮样式 */
+.table-card :deep(.el-button--primary) {
+  color: #10b981;
+}
+
+.table-card :deep(.el-button--primary:hover) {
+  color: #059669;
+}
+
 /* 响应式 */
-@media (max-width: 1200px) {
-  .stats-row .el-col {
-    margin-bottom: 12px;
+@media (max-width: 576px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .search-input {
+    max-width: 100%;
   }
 }
 </style>

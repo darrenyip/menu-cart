@@ -101,6 +101,7 @@ export const menusApi = {
         menu: menu.id,
         recipe: dish.recipeId || null,
         name: dish.name,
+        category: dish.category || '',
         portions: dish.portions || 1,
         sort: i,
       })
@@ -163,6 +164,7 @@ export const menusApi = {
         menu: id,
         recipe: dish.recipeId || null,
         name: dish.name,
+        category: dish.category || '',
         portions: dish.portions || 1,
         sort: i,
       })

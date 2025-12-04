@@ -87,12 +87,16 @@ export const recipesApi = {
 
   /**
    * 创建菜谱
-   * @param {object} data 菜谱数据
+   * @param {object} data 菜谱数据 { name, category, description }
    * @param {array} materials 原料列表
    */
   async create(data, materials = []) {
     // 创建菜谱
-    const recipe = await pb.collection(COLLECTION).create(data)
+    const recipe = await pb.collection(COLLECTION).create({
+      name: data.name,
+      category: data.category || '',
+      description: data.description || '',
+    })
 
     // 创建菜谱原料关联
     if (materials.length > 0) {
@@ -102,7 +106,8 @@ export const recipesApi = {
           material: material.materialId || null,
           name: material.name,
           quantity: material.quantity,
-          unit: material.unit,
+          unit: material.unit || '',
+          remark: material.remark || '',
         })
       }
     }
@@ -113,12 +118,16 @@ export const recipesApi = {
   /**
    * 更新菜谱
    * @param {string} id 菜谱ID
-   * @param {object} data 更新数据
+   * @param {object} data 更新数据 { name, category, description }
    * @param {array} materials 原料列表
    */
   async update(id, data, materials = []) {
     // 更新菜谱基本信息
-    const recipe = await pb.collection(COLLECTION).update(id, data)
+    const recipe = await pb.collection(COLLECTION).update(id, {
+      name: data.name,
+      category: data.category || '',
+      description: data.description || '',
+    })
 
     // 删除旧的原料关联
     const oldMaterials = await pb.collection(MATERIALS_COLLECTION).getFullList({
@@ -136,7 +145,8 @@ export const recipesApi = {
           material: material.materialId || null,
           name: material.name,
           quantity: material.quantity,
-          unit: material.unit,
+          unit: material.unit || '',
+          remark: material.remark || '',
         })
       }
     }

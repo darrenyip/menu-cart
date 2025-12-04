@@ -10,7 +10,7 @@
 
     <!-- 统计卡片 -->
     <el-row :gutter="16" class="stats-row">
-      <el-col :span="8">
+        <el-col :span="8">
         <div class="stat-card stat-card-total">
           <div class="stat-icon">
             <el-icon :size="28"><Calendar /></el-icon>
@@ -20,8 +20,8 @@
             <div class="stat-label">全部菜单</div>
           </div>
         </div>
-      </el-col>
-      <el-col :span="8">
+        </el-col>
+        <el-col :span="8">
         <div class="stat-card stat-card-dishes">
           <div class="stat-icon">
             <el-icon :size="28"><Dish /></el-icon>
@@ -31,8 +31,8 @@
             <div class="stat-label">菜品总数</div>
           </div>
         </div>
-      </el-col>
-    </el-row>
+        </el-col>
+      </el-row>
 
     <!-- 菜单列表 -->
     <el-card class="table-card" shadow="hover">
@@ -169,9 +169,9 @@ export default {
       try {
         await ElMessageBox.confirm(
           `确定要删除菜单"${row.name}"吗？删除后无法恢复！`,
-          '删除警告',
+          '删除确认',
           {
-            confirmButtonText: '确定删除',
+            confirmButtonText: '确定',
             cancelButtonText: '取消',
             type: 'warning',
           }
@@ -182,12 +182,12 @@ export default {
         ElMessage.success('菜单删除成功！')
         this.loadData()
       } catch (error) {
-        if (error !== 'cancel') {
-          console.error('删除菜单失败:', error)
-          ElMessage.error('删除失败，请重试')
-        } else {
-          ElMessage.info('已取消删除')
+        // 用户点击取消或关闭按钮
+        if (error === 'cancel' || error === 'close') {
+          return
         }
+        console.error('删除菜单失败:', error)
+        ElMessage.error('删除失败，请重试')
       } finally {
         this.loading = false
       }

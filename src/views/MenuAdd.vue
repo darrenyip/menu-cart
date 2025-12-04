@@ -22,8 +22,13 @@
     <el-card class="info-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <el-icon class="card-icon"><Document /></el-icon>
-          <span>菜单信息</span>
+          <div class="header-title">
+            <el-icon class="card-icon"><Document /></el-icon>
+            <span>菜单信息</span>
+            <el-tag v-if="dishNames.length > 0" type="success" size="small" style="margin-left: 8px">
+              {{ dishNames.length }} 道菜
+            </el-tag>
+          </div>
         </div>
       </template>
       <el-form :model="menuForm" label-position="top">
@@ -57,6 +62,31 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <!-- 菜品名称快览（按分类显示） -->
+        <div v-if="dishNames.length > 0" class="dish-names-preview">
+          <div class="dish-names-label">
+            <el-icon><Dish /></el-icon>
+            <span>今日菜品</span>
+          </div>
+          <div class="dish-names-grouped">
+            <div 
+              v-for="(group, category) in groupedDishes" 
+              :key="category"
+              class="dish-category-group"
+            >
+              <span class="category-label">{{ category }}</span>
+              <el-tag 
+                v-for="(dish, index) in group" 
+                :key="index"
+                class="dish-name-tag"
+                :type="getCategoryTagType(category)"
+                effect="plain"
+              >
+                {{ dish.name }}
+              </el-tag>
+            </div>
+          </div>
+        </div>
       </el-form>
     </el-card>
 
@@ -93,11 +123,27 @@
             <div class="dish-index">
               <span class="index-badge">{{ dishIndex + 1 }}</span>
             </div>
+            <div class="dish-category">
+              <el-select
+                v-model="dish.category"
+                placeholder="分类"
+                size="default"
+                style="width: 90px"
+                clearable
+              >
+                <el-option
+                  v-for="cat in dishCategories"
+                  :key="cat"
+                  :label="cat"
+                  :value="cat"
+                />
+              </el-select>
+            </div>
             <div class="dish-main">
               <el-autocomplete
                 v-model="dish.name"
                 :fetch-suggestions="searchRecipes"
-                placeholder="搜索菜谱或输入新菜品名称"
+                placeholder="搜索菜谱或输入菜品名称"
                 class="dish-name-input"
                 @select="(item) => selectRecipe(dishIndex, item)"
                 clearable
@@ -119,7 +165,7 @@
             </div>
             <div class="dish-actions">
               <el-button type="danger" text @click="removeDish(dishIndex)">
-                <el-icon><Delete /></el-icon>删除菜品
+                <el-icon><Delete /></el-icon>删除
               </el-button>
             </div>
           </div>
@@ -341,6 +387,7 @@ import {
   Download,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { DISH_CATEGORIES, getCategoryTagType } from '@/constants/dishCategories'
 import { loadXLSX } from '@/utils/xlsx'
 import menusApi from '@/api/menus'
 import recipesApi from '@/api/recipes'
@@ -460,11 +507,47 @@ export default {
           ],
         },
       ],
+      // 菜品分类（引用统一配置）
+      dishCategories: DISH_CATEGORIES,
     }
   },
   computed: {
     isEdit() {
       return !!this.$route.params.id
+    },
+    // 获取已填写的菜品名称列表
+    dishNames() {
+      return this.dishList
+        .filter(dish => dish.name && dish.name.trim())
+        .map(dish => dish.name.trim())
+    },
+    // 按分类分组的菜品
+    groupedDishes() {
+      const groups = {}
+      this.dishList
+        .filter(dish => dish.name && dish.name.trim())
+        .forEach(dish => {
+          const category = dish.category || '未分类'
+          if (!groups[category]) {
+            groups[category] = []
+          }
+          groups[category].push({
+            name: dish.name.trim(),
+            portions: dish.portions,
+          })
+        })
+      
+      // 按照 dishCategories 的顺序排列，未分类放最后
+      const orderedGroups = {}
+      this.dishCategories.forEach(cat => {
+        if (groups[cat]) {
+          orderedGroups[cat] = groups[cat]
+        }
+      })
+      if (groups['未分类']) {
+        orderedGroups['未分类'] = groups['未分类']
+      }
+      return orderedGroups
     },
     ingredientSummary() {
       const summary = {}
@@ -546,6 +629,8 @@ export default {
     }
   },
   methods: {
+    // 获取分类对应的标签颜色（使用统一配置）
+    getCategoryTagType,
     // 加载菜谱和原料数据
     async loadData() {
       try {
@@ -597,6 +682,7 @@ export default {
           this.dishList = menuData.dishes.map((dish) => ({
             name: dish.name,
             recipeId: dish.recipe || null,
+            category: dish.category || '',
             portions: dish.portions || 1,
             ingredients: dish.ingredients.map((ing) => ({
               name: ing.name,
@@ -658,6 +744,7 @@ export default {
       this.dishList.push({
         name: '',
         recipeId: null,
+        category: '',
         portions: 1,
         ingredients: [{ name: '', materialId: null, quantity: null, unit: '' }],
       })
@@ -709,6 +796,10 @@ export default {
     selectRecipe(dishIndex, recipe) {
       this.dishList[dishIndex].name = recipe.name
       this.dishList[dishIndex].recipeId = recipe.id
+      // 同步菜谱的分类
+      if (recipe.category) {
+        this.dishList[dishIndex].category = recipe.category
+      }
       this.dishList[dishIndex].ingredients = recipe.ingredients.map((ing) => ({
         name: ing.name,
         materialId: null,
@@ -906,10 +997,13 @@ export default {
               unit: ing.unit || '',
             }))
 
-          // 创建新菜谱到菜谱库
+          // 创建新菜谱到菜谱库（包含分类信息）
           try {
             const newRecipe = await recipesApi.create(
-              { name: dish.name },
+              { 
+                name: dish.name,
+                category: dish.category || '',
+              },
               recipeMaterials
             )
             dish.recipeId = newRecipe.id
@@ -919,6 +1013,7 @@ export default {
               value: newRecipe.name,
               id: newRecipe.id,
               name: newRecipe.name,
+              category: dish.category || '',
               ingredients: recipeMaterials,
             })
           } catch (error) {
@@ -930,6 +1025,7 @@ export default {
         const dishes = this.dishList.map((dish) => ({
           name: dish.name,
           recipeId: dish.recipeId || null,
+          category: dish.category || '',
           portions: dish.portions,
           ingredients: dish.ingredients
             .filter((ing) => ing.name?.trim() && ing.quantity > 0)
@@ -1243,7 +1339,13 @@ export default {
   border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
-.info-card :deep(.el-card__header),
+/* 菜单信息卡片 - 翡翠绿风格 */
+.info-card :deep(.el-card__header) {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+}
+
 .summary-card :deep(.el-card__header) {
   padding: 16px 20px;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -1290,6 +1392,73 @@ export default {
 .info-card :deep(.el-form-item__label) {
   font-weight: 500;
   color: #4b5563;
+}
+
+/* 菜品名称快览 */
+.dish-names-preview {
+  margin-top: 8px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(6, 182, 212, 0.03) 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(16, 185, 129, 0.12);
+}
+
+.dish-names-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.dish-names-label .el-icon {
+  color: #10b981;
+  font-size: 16px;
+}
+
+.dish-names-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dish-names-grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dish-category-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  background: rgba(107, 114, 128, 0.1);
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+  min-width: 48px;
+  text-align: center;
+}
+
+.dish-name-tag {
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.dish-name-tag:hover {
+  transform: translateY(-1px);
 }
 
 /* 空状态 */
@@ -1344,8 +1513,17 @@ export default {
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
+.dish-category {
+  flex-shrink: 0;
+}
+
+.dish-category :deep(.el-select__wrapper) {
+  border-radius: 8px;
+}
+
 .dish-main {
   flex: 1;
+  min-width: 150px;
 }
 
 .dish-name-input {
@@ -1416,8 +1594,9 @@ export default {
 
 .ingredient-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 12px;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(248, 250, 252, 1) 100%);
   border-radius: 8px;
@@ -1431,21 +1610,20 @@ export default {
 }
 
 .ingredient-name {
-  flex: 2;
+  flex: 1 1 200px;
+  min-width: 150px;
 }
 
 .ingredient-quantity {
-  flex: 1;
-  min-width: 120px;
+  flex: 0 0 100px;
 }
 
 .ingredient-unit {
-  flex: 1;
-  min-width: 100px;
+  flex: 0 0 90px;
 }
 
 .ingredient-actions {
-  flex-shrink: 0;
+  flex: 0 0 32px;
 }
 
 /* 原料汇总卡片 */
@@ -1664,38 +1842,119 @@ export default {
   flex-shrink: 0;
 }
 
-/* 响应式 */
-@media (max-width: 768px) {
+/* 响应式 - 平板 */
+@media (max-width: 992px) {
+  .ingredient-row,
+  .extra-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .ingredient-name,
+  .extra-name {
+    flex: 2;
+    min-width: 140px;
+  }
+
+  .ingredient-quantity,
+  .extra-quantity {
+    flex: none;
+    width: 100px;
+  }
+
+  .ingredient-unit,
+  .extra-unit {
+    flex: none;
+    width: 90px;
+  }
+
+  .extra-remark {
+    flex: 1;
+    min-width: 100px;
+  }
+}
+
+/* 响应式 - 手机 */
+@media (max-width: 576px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
   .dish-header {
     flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .dish-index {
+    order: 0;
+  }
+
+  .dish-category {
+    order: 1;
+  }
+
+  .dish-actions {
+    order: 0;
+    margin-left: auto;
   }
 
   .dish-main {
     width: 100%;
+    flex: none;
     order: 2;
   }
 
   .dish-portions {
     order: 3;
+    width: auto;
+    justify-content: flex-start;
   }
 
-  .dish-actions {
-    order: 1;
-    margin-left: auto;
-  }
-
-  .ingredient-row {
+  .ingredient-row,
+  .extra-row {
     flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
   }
 
-  .ingredient-name {
+  .ingredient-name,
+  .extra-name {
     width: 100%;
     flex: none;
+    order: 1;
   }
 
   .ingredient-quantity,
-  .ingredient-unit {
+  .extra-quantity {
     flex: 1;
+    min-width: 0;
+    order: 2;
+  }
+
+  .ingredient-unit,
+  .extra-unit {
+    flex: 1;
+    min-width: 0;
+    order: 3;
+  }
+
+  .ingredient-actions,
+  .extra-actions {
+    order: 0;
+    margin-left: auto;
+  }
+
+  .extra-remark {
+    width: 100%;
+    flex: none;
+    order: 4;
   }
 
   /* 汇总操作按钮移动端适配 */
@@ -1713,5 +1972,10 @@ export default {
     gap: 12px;
     align-items: flex-start;
   }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
+
