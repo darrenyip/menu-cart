@@ -915,7 +915,11 @@ export default {
   color: #10b981;
 }
 
-/* 响应式 */
+/* ================================
+   响应式样式
+   ================================ */
+
+/* 平板端 (768px - 1024px) */
 @media (max-width: 1024px) {
   .main-content {
     grid-template-columns: 1fr;
@@ -924,33 +928,427 @@ export default {
   .stats-grid {
     grid-template-columns: repeat(3, 1fr);
   }
+
+  .quick-access {
+    order: -1;
+  }
+
+  .quick-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
+/* 小平板 / 大手机 (576px - 768px) */
 @media (max-width: 768px) {
   .welcome-section {
-    padding: 28px 24px;
+    padding: 24px 20px;
+    border-radius: 16px;
+    margin-bottom: 20px;
   }
 
   .welcome-content {
     flex-direction: column;
     align-items: flex-start;
-    gap: 24px;
+    gap: 20px;
   }
 
   .welcome-title {
-    font-size: 26px;
+    font-size: 24px;
+  }
+
+  .welcome-date {
+    font-size: 13px;
+  }
+
+  .primary-btn {
+    width: 100%;
+    height: 46px;
+    padding: 0 24px;
+    font-size: 14px;
+  }
+
+  .stats-section {
+    margin-bottom: 20px;
   }
 
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
   }
 
   .stat-card {
-    padding: 20px;
+    padding: 16px;
+    border-radius: 12px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+    border-radius: 12px;
   }
 
   .stat-value {
-    font-size: 28px;
+    font-size: 24px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  .stat-decoration {
+    display: none;
+  }
+
+  .main-content {
+    gap: 16px;
+  }
+
+  .content-card {
+    border-radius: 12px;
+  }
+
+  .card-header {
+    padding: 14px 16px;
+  }
+
+  .header-title {
+    font-size: 15px;
+    gap: 8px;
+  }
+
+  .header-icon {
+    font-size: 18px;
+  }
+
+  .card-body {
+    padding: 14px 16px;
+  }
+
+  .menu-list {
+    gap: 10px;
+  }
+
+  .menu-item {
+    padding: 12px;
+    border-radius: 10px;
+    gap: 12px;
+  }
+
+  .menu-date-badge {
+    width: 50px;
+    height: 60px;
+    border-radius: 10px;
+  }
+
+  .date-day {
+    font-size: 20px;
+  }
+
+  .menu-name {
+    font-size: 14px;
+  }
+
+  .quick-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .quick-item {
+    padding: 16px 8px;
+    border-radius: 12px;
+    gap: 10px;
+  }
+
+  .quick-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    border-radius: 12px;
+  }
+
+  .quick-label {
+    font-size: 11px;
+  }
+
+  /* 弹窗响应式 */
+  .menu-dialog :deep(.el-dialog) {
+    width: 90% !important;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+}
+
+/* 手机端 (<576px) */
+@media (max-width: 576px) {
+  .welcome-section {
+    padding: 20px 16px;
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+
+  .welcome-section::before {
+    width: 300px;
+    height: 300px;
+    top: -40%;
+    right: -20%;
+  }
+
+  .welcome-section::after {
+    width: 200px;
+    height: 200px;
+    bottom: -30%;
+  }
+
+  .welcome-title {
+    font-size: 22px;
+    gap: 8px;
+  }
+
+  .wave-emoji {
+    font-size: 20px;
+  }
+
+  .welcome-date {
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .primary-btn {
+    height: 44px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+
+  .stats-section {
+    margin-bottom: 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 12px 8px;
+    border-radius: 10px;
+    gap: 8px;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    border-radius: 10px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+  }
+
+  .main-content {
+    gap: 12px;
+  }
+
+  .content-card {
+    border-radius: 10px;
+  }
+
+  .card-header {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .header-title {
+    font-size: 14px;
+  }
+
+  .header-icon {
+    font-size: 16px;
+  }
+
+  .card-header :deep(.el-button) {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
+  .card-body {
+    padding: 12px 14px;
+  }
+
+  .empty-state {
+    padding: 32px 16px;
+  }
+
+  .empty-icon {
+    font-size: 44px;
+    margin-bottom: 12px;
+  }
+
+  .empty-state p {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  .menu-list {
+    gap: 8px;
+  }
+
+  .menu-item {
+    padding: 10px;
+    border-radius: 8px;
+    gap: 10px;
+  }
+
+  .menu-date-badge {
+    width: 44px;
+    height: 54px;
+    border-radius: 8px;
+  }
+
+  .date-month {
+    font-size: 10px;
+  }
+
+  .date-day {
+    font-size: 18px;
+  }
+
+  .date-weekday {
+    font-size: 10px;
+  }
+
+  .menu-name {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .menu-meta {
+    gap: 6px;
+  }
+
+  .menu-meta .el-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .menu-actions :deep(.el-button) {
+    padding: 6px;
+  }
+
+  .quick-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .quick-item {
+    padding: 18px 12px;
+    border-radius: 10px;
+    gap: 10px;
+  }
+
+  .quick-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 22px;
+    border-radius: 10px;
+  }
+
+  .quick-label {
+    font-size: 12px;
+  }
+
+  /* 弹窗响应式 */
+  .menu-dialog :deep(.el-dialog) {
+    width: 95% !important;
+    margin: 10px auto;
+  }
+
+  .menu-detail .detail-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .menu-detail .detail-hint {
+    padding: 12px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+}
+
+/* 超小屏幕 (<400px) */
+@media (max-width: 400px) {
+  .welcome-section {
+    padding: 16px 12px;
+    border-radius: 12px;
+  }
+
+  .welcome-title {
+    font-size: 20px;
+  }
+
+  .stats-grid {
+    gap: 6px;
+  }
+
+  .stat-card {
+    padding: 10px 6px;
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .stat-value {
+    font-size: 18px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+  }
+
+  .card-header {
+    padding: 10px 12px;
+  }
+
+  .card-body {
+    padding: 10px 12px;
+  }
+
+  .menu-item {
+    padding: 8px;
+  }
+
+  .menu-date-badge {
+    width: 40px;
+    height: 50px;
+  }
+
+  .date-day {
+    font-size: 16px;
+  }
+
+  .quick-item {
+    padding: 14px 10px;
+  }
+
+  .quick-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 20px;
   }
 }
 </style>

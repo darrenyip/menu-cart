@@ -1,5 +1,6 @@
 <template>
   <div class="menu-add-page">
+    <div class="page-container">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -32,36 +33,18 @@
         </div>
       </template>
       <el-form :model="menuForm" label-position="top">
-        <el-row :gutter="24">
-          <el-col :span="12">
-            <el-form-item label="菜单名称" required>
-              <el-input
-                v-model="menuForm.name"
-                placeholder="输入菜单名称"
-                size="large"
-                clearable
-              >
-                <template #prefix>
-                  <el-icon><Edit /></el-icon>
-                </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="菜单日期" required>
-              <el-date-picker
-                v-model="menuForm.date"
-                type="date"
-                placeholder="选择日期"
-                style="width: 100%"
-                size="large"
-                value-format="YYYY-MM-DD"
-                @change="onDateChange"
-                :shortcuts="dateShortcuts"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="菜单名称" required>
+          <el-input
+            v-model="menuForm.name"
+            placeholder="输入菜单名称"
+            size="large"
+            clearable
+          >
+            <template #prefix>
+              <el-icon><Edit /></el-icon>
+            </template>
+          </el-input>
+        </el-form-item>
         <!-- 菜品名称快览（按分类显示） -->
         <div v-if="dishNames.length > 0" class="dish-names-preview">
           <div class="dish-names-label">
@@ -314,9 +297,6 @@
               </el-option-group>
             </el-select>
           </div>
-          <div class="extra-remark">
-            <el-input v-model="item.remark" placeholder="备注（可选）" size="default" />
-          </div>
           <div class="extra-actions">
             <el-button type="danger" text size="small" @click="removeExtraPurchase(index)">
               <el-icon><Close /></el-icon>
@@ -377,6 +357,7 @@
         </div>
       </div>
     </el-card>
+    </div>
   </div>
 </template>
 
@@ -429,7 +410,6 @@ export default {
       menuId: null,
       menuForm: {
         name: '',
-        date: null,
       },
       dishList: [],
       // 其他原料采购
@@ -437,39 +417,6 @@ export default {
       // 从后端加载的数据
       recipeList: [],
       ingredientList: [],
-      // 日期快捷选项
-      dateShortcuts: [
-        {
-          text: '今天',
-          value: new Date(),
-        },
-        {
-          text: '明天',
-          value: () => {
-            const date = new Date()
-            date.setTime(date.getTime() + 3600 * 1000 * 24)
-            return date
-          },
-        },
-        {
-          text: '后天',
-          value: () => {
-            const date = new Date()
-            date.setTime(date.getTime() + 3600 * 1000 * 24 * 2)
-            return date
-          },
-        },
-        {
-          text: '下周一',
-          value: () => {
-            const date = new Date()
-            const day = date.getDay()
-            const diff = day === 0 ? 1 : 8 - day
-            date.setTime(date.getTime() + 3600 * 1000 * 24 * diff)
-            return date
-          },
-        },
-      ],
       // 分组单位数据
       groupedUnits: [
         {
@@ -615,7 +562,7 @@ export default {
           }
           
           summary[key].dishes.push({
-            name: '其他采购' + (item.remark ? `(${item.remark})` : ''),
+            name: '其他采购',
             quantity: item.quantity,
             unit: itemUnit,
             portions: 1,
@@ -627,7 +574,7 @@ export default {
             originalUnit: item.unit || '份',
             totalQuantity: item.quantity,
             dishes: [{
-              name: '其他采购' + (item.remark ? `(${item.remark})` : ''),
+              name: '其他采购',
               quantity: item.quantity,
               unit: item.unit || '份',
               portions: 1,
@@ -712,7 +659,6 @@ export default {
 
         // 设置菜单基本信息
         this.menuForm.name = menuData.name
-        this.menuForm.date = menuData.date
 
         // 设置菜品列表
         if (menuData.dishes && menuData.dishes.length > 0) {
@@ -751,30 +697,11 @@ export default {
     },
 
     generateDefaultMenuName() {
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-
-      const month = tomorrow.getMonth() + 1
-      const date = tomorrow.getDate()
-      const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
-      const weekday = weekdays[tomorrow.getDay()]
-
-      this.menuForm.name = `${month}月${date}日${weekday}菜单`
-      // 格式化日期为 YYYY-MM-DD
-      const year = tomorrow.getFullYear()
-      this.menuForm.date = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`
-    },
-
-    onDateChange(dateStr) {
-      if (dateStr) {
-        const date = new Date(dateStr)
-        const month = date.getMonth() + 1
-        const dateNum = date.getDate()
-        const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
-        const weekday = weekdays[date.getDay()]
-
-        this.menuForm.name = `${month}月${dateNum}日${weekday}菜单`
-      }
+      // 菜单名称用当天日期（下单日）
+      const today = new Date()
+      const todayMonth = today.getMonth() + 1
+      const todayDate = today.getDate()
+      this.menuForm.name = `${todayMonth}月${todayDate}日订单`
     },
 
     addDish() {
@@ -865,7 +792,6 @@ export default {
         materialId: null,
         quantity: null,
         unit: '斤',
-        remark: '',
       })
     },
 
@@ -883,12 +809,6 @@ export default {
       // 验证菜单名称
       if (!this.menuForm.name?.trim()) {
         ElMessage.error('请输入菜单名称')
-        return
-      }
-
-      // 验证菜单日期
-      if (!this.menuForm.date) {
-        ElMessage.error('请选择菜单日期')
         return
       }
 
@@ -928,6 +848,14 @@ export default {
         // 用于缓存已创建的原料，避免重复创建
         const materialCache = new Map()
 
+        // 先获取原料库中已存在的所有原料，建立名称到ID的映射
+        const existingMaterials = await materialsApi.getAll()
+        const existingMaterialMap = new Map()
+        for (const material of existingMaterials) {
+          // 以原料名称为 key（忽略单位差异，同名原料视为同一个）
+          existingMaterialMap.set(material.name, material)
+        }
+
         // 第一步：处理所有原料，确保都存入原料库
         for (const dish of this.dishList) {
           for (const ing of dish.ingredients) {
@@ -936,8 +864,14 @@ export default {
             // 如果已经有 materialId，说明是从原料库选择的，跳过
             if (ing.materialId) continue
 
-            // 检查缓存中是否已有同名原料
-            const cacheKey = `${ing.name}_${ing.unit}`
+            // 检查原料库中是否已有同名原料
+            if (existingMaterialMap.has(ing.name)) {
+              ing.materialId = existingMaterialMap.get(ing.name).id
+              continue
+            }
+
+            // 检查缓存中是否已有同名原料（当前保存操作中新创建的）
+            const cacheKey = ing.name
             if (materialCache.has(cacheKey)) {
               ing.materialId = materialCache.get(cacheKey)
               continue
@@ -959,7 +893,9 @@ export default {
                 price: 0,
               })
               ing.materialId = newMaterial.id
-              materialCache.set(cacheKey, newMaterial.id)
+              materialCache.set(ing.name, newMaterial.id)
+              // 同时更新 existingMaterialMap，避免后续重复创建
+              existingMaterialMap.set(ing.name, newMaterial)
 
               // 同时更新本地原料列表供后续使用
               this.ingredientList.push({
@@ -981,8 +917,14 @@ export default {
           // 如果已经有 materialId，跳过
           if (item.materialId) continue
 
-          // 检查缓存中是否已有同名原料
-          const cacheKey = `${item.name}_${item.unit}`
+          // 检查原料库中是否已有同名原料
+          if (existingMaterialMap.has(item.name)) {
+            item.materialId = existingMaterialMap.get(item.name).id
+            continue
+          }
+
+          // 检查缓存中是否已有同名原料（当前保存操作中新创建的）
+          const cacheKey = item.name
           if (materialCache.has(cacheKey)) {
             item.materialId = materialCache.get(cacheKey)
             continue
@@ -1003,7 +945,9 @@ export default {
               price: 0,
             })
             item.materialId = newMaterial.id
-            materialCache.set(cacheKey, newMaterial.id)
+            materialCache.set(item.name, newMaterial.id)
+            // 同时更新 existingMaterialMap，避免后续重复创建
+            existingMaterialMap.set(item.name, newMaterial)
 
             // 同时更新本地原料列表
             this.ingredientList.push({
@@ -1090,7 +1034,6 @@ export default {
             this.menuId,
             {
               name: this.menuForm.name,
-              date: this.menuForm.date,
               extra_purchases: extraPurchases,
             },
             dishes
@@ -1100,7 +1043,6 @@ export default {
           await menusApi.create(
             {
               name: this.menuForm.name,
-              date: this.menuForm.date,
               extra_purchases: extraPurchases,
             },
             dishes
@@ -1316,8 +1258,7 @@ export default {
 
         // 生成文件名
         const menuName = this.menuForm.name || '采购清单'
-        const dateStr = this.menuForm.date || new Date().toISOString().split('T')[0]
-        const fileName = `${menuName}_${dateStr}.xlsx`
+        const fileName = `${menuName}.xlsx`
 
         // 导出文件
         XLSX.writeFile(wb, fileName)
@@ -1335,6 +1276,12 @@ export default {
 <style scoped>
 .menu-add-page {
   padding: 0;
+}
+
+/* 页面容器 - 限制最大宽度 */
+.page-container {
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 /* 页面头部 */
@@ -1389,6 +1336,12 @@ export default {
 
 .header-actions .el-button--primary:hover {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* 按钮文字（用于响应式隐藏） */
+.btn-text-cancel,
+.btn-text-save {
+  margin-left: 4px;
 }
 
 /* 卡片样式 */
@@ -1730,7 +1683,6 @@ export default {
 
 .ingredient-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   padding: 12px;
@@ -1746,20 +1698,26 @@ export default {
 }
 
 .ingredient-name {
-  flex: 1 1 200px;
-  min-width: 150px;
+  flex: 1 1 55%;
+  min-width: 0;
 }
 
 .ingredient-quantity {
-  flex: 0 0 100px;
+  flex: 0 0 20%;
+  min-width: 150px;
+}
+
+.ingredient-quantity :deep(.el-input-number) {
+  width: 100%;
 }
 
 .ingredient-unit {
-  flex: 0 0 90px;
+  flex: 0 0 15%;
+  min-width: 120px;
 }
 
 .ingredient-actions {
-  flex: 0 0 32px;
+  flex: 0 0 auto;
 }
 
 /* 原料汇总卡片 */
@@ -1945,162 +1903,685 @@ export default {
 }
 
 .extra-name {
-  flex: 2;
-  min-width: 150px;
+  flex: 1 1 45%;
+  min-width: 0;
 }
 
 .extra-quantity {
-  flex: 1;
-  min-width: 100px;
+  flex: 0 0 18%;
+  min-width: 150px;
+}
+
+.extra-quantity :deep(.el-input-number) {
+  width: 100%;
 }
 
 .extra-unit {
-  flex: 1;
-  min-width: 90px;
-}
-
-.extra-remark {
-  flex: 2;
+  flex: 0 0 15%;
   min-width: 120px;
 }
 
 .extra-actions {
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 
-/* 响应式 - 平板 */
-@media (max-width: 992px) {
-  .ingredient-row,
-  .extra-row {
-    flex-wrap: wrap;
-    gap: 10px;
-  }
+/* ================================
+   响应式样式
+   ================================ */
 
-  .ingredient-name,
-  .extra-name {
-    flex: 2;
-    min-width: 140px;
-  }
-
-  .ingredient-quantity,
-  .extra-quantity {
-    flex: none;
-    width: 100px;
-  }
-
-  .ingredient-unit,
-  .extra-unit {
-    flex: none;
-    width: 90px;
-  }
-
-  .extra-remark {
-    flex: 1;
-    min-width: 100px;
-  }
-}
-
-/* 响应式 - 手机 */
-@media (max-width: 576px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .header-actions {
-    width: 100%;
-    justify-content: flex-end;
+/* 平板端 (768px - 1024px) */
+@media (max-width: 1024px) {
+  .page-container {
+    max-width: 100%;
   }
 
   .dish-header {
-    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .fab-container {
+    right: 20px;
+    bottom: 20px;
+  }
+
+  .fab-btn {
+    width: 50px !important;
+    height: 50px !important;
+  }
+}
+
+/* 小平板 (576px - 768px) */
+@media (max-width: 768px) {
+  .page-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .header-actions .el-button {
+    padding: 8px 12px;
+  }
+
+  /* 卡片样式调整 */
+  .info-card,
+  .dishes-card,
+  .summary-card,
+  .extra-card {
+    margin-bottom: 16px;
+    border-radius: 10px;
+  }
+
+  .info-card :deep(.el-card__header),
+  .dishes-card :deep(.el-card__header),
+  .summary-card :deep(.el-card__header),
+  .extra-card :deep(.el-card__header) {
+    padding: 12px 16px;
+  }
+
+  .info-card :deep(.el-card__body),
+  .dishes-card :deep(.el-card__body),
+  .summary-card :deep(.el-card__body),
+  .extra-card :deep(.el-card__body) {
+    padding: 16px;
+  }
+
+  .card-header span {
+    font-size: 15px;
+  }
+
+  .card-icon {
+    font-size: 16px;
+  }
+
+  /* 菜品卡片 */
+  .dish-list {
+    gap: 16px;
+  }
+
+  .dish-item {
+    border-radius: 10px;
+  }
+
+  .dish-header {
     gap: 10px;
-  }
-
-  .dish-index {
-    order: 0;
-  }
-
-  .dish-category {
-    order: 1;
-  }
-
-  .dish-actions {
-    order: 0;
-    margin-left: auto;
-  }
-
-  .dish-main {
-    width: 100%;
-    flex: none;
-    order: 2;
-  }
-
-  .dish-portions {
-    order: 3;
-    width: auto;
-    justify-content: flex-start;
-  }
-
-  .ingredient-row,
-  .extra-row {
+    padding: 12px 14px;
     flex-wrap: wrap;
+  }
+
+  .index-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+
+  .dish-category :deep(.el-select) {
+    width: 80px !important;
+  }
+
+  .portions-label {
+    font-size: 12px;
+  }
+
+  /* 原料区域 */
+  .ingredients-section {
+    padding: 12px 14px;
+  }
+
+  .ingredients-title {
+    font-size: 13px;
+  }
+
+  .ingredient-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-rows: auto auto;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .ingredient-name {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .ingredient-quantity {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+  }
+
+  .ingredient-unit {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 90px;
+  }
+
+  .ingredient-actions {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .extra-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-rows: auto auto;
     gap: 8px;
     padding: 10px;
   }
 
-  .ingredient-name,
   .extra-name {
-    width: 100%;
-    flex: none;
-    order: 1;
+    grid-column: 1 / -1;
+    grid-row: 1;
   }
 
-  .ingredient-quantity,
   .extra-quantity {
-    flex: 1;
-    min-width: 0;
-    order: 2;
+    grid-column: 1;
+    grid-row: 2;
   }
 
-  .ingredient-unit,
   .extra-unit {
-    flex: 1;
-    min-width: 0;
-    order: 3;
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 90px;
   }
 
-  .ingredient-actions,
   .extra-actions {
-    order: 0;
-    margin-left: auto;
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
   }
 
-  .extra-remark {
-    width: 100%;
-    flex: none;
-    order: 4;
+  /* 汇总网格 */
+  .summary-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
   }
 
-  /* 汇总操作按钮移动端适配 */
-  .summary-actions {
+  .summary-item {
+    padding: 14px;
+  }
+
+  .item-name {
+    font-size: 15px;
+  }
+
+  .item-quantity {
+    font-size: 14px;
+    padding: 3px 10px;
+  }
+
+  .dish-source {
+    font-size: 12px;
+    padding: 5px 8px;
+  }
+
+  /* 添加按钮 */
+  .add-dish-bottom {
+    padding: 18px;
+    font-size: 14px;
+  }
+
+  .add-extra-bottom {
+    padding: 14px;
+    font-size: 13px;
+  }
+}
+
+/* 手机端 (<576px) */
+@media (max-width: 576px) {
+  .page-header {
     flex-direction: column;
-    gap: 8px;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 14px;
   }
 
-  .summary-actions .el-button {
-    margin: 0;
+  .header-left {
+    gap: 6px;
+  }
+
+  .back-btn {
+    font-size: 18px;
+    padding: 6px;
+  }
+
+  .page-title {
+    font-size: 17px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .header-actions .el-button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* 卡片调整 */
+  .info-card,
+  .dishes-card,
+  .summary-card,
+  .extra-card {
+    margin-bottom: 12px;
+    border-radius: 8px;
+  }
+
+  .info-card :deep(.el-card__header),
+  .dishes-card :deep(.el-card__header),
+  .summary-card :deep(.el-card__header),
+  .extra-card :deep(.el-card__header) {
+    padding: 10px 12px;
+  }
+
+  .info-card :deep(.el-card__body),
+  .dishes-card :deep(.el-card__body),
+  .summary-card :deep(.el-card__body),
+  .extra-card :deep(.el-card__body) {
+    padding: 12px;
   }
 
   .card-header {
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     align-items: flex-start;
   }
 
+  .card-header span {
+    font-size: 14px;
+  }
+
+  /* 菜品名称快览 */
+  .dish-names-preview {
+    padding: 12px;
+    margin-top: 6px;
+  }
+
+  .dish-names-label {
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .dish-category-group {
+    gap: 6px;
+  }
+
+  .category-label {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .dish-name-tag {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+
+  /* 菜品卡片 */
+  .dish-list {
+    gap: 12px;
+  }
+
+  .dish-item {
+    border-radius: 8px;
+  }
+
+  /* 菜品头部布局：
+     第一行: [序号] [菜谱名称 ─────────────]
+     第二行: [分类] [份数] ────── [删除] */
+  .dish-header {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 8px;
+    padding: 10px 12px;
+    align-items: center;
+  }
+
+  .dish-index {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .index-badge {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+
+  .dish-main {
+    grid-column: 2 / -1;
+    grid-row: 1;
+    width: 100%;
+  }
+
+  .dish-category {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .dish-category :deep(.el-select) {
+    width: 72px !important;
+  }
+
+  .dish-portions {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    justify-self: start;
+    gap: 6px;
+  }
+
+  .portions-label {
+    font-size: 12px;
+  }
+
+  .dish-portions :deep(.el-input-number) {
+    width: 100px;
+  }
+
+  .dish-actions {
+    grid-column: 4;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .dish-actions .el-button {
+    padding: 6px 12px;
+    font-size: 13px;
+    min-height: 32px;
+  }
+
+  /* 原料区域 */
+  .ingredients-section {
+    padding: 10px 12px;
+  }
+
+  .ingredients-header {
+    margin-bottom: 10px;
+  }
+
+  .ingredients-title {
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .no-ingredients {
+    padding: 14px;
+    font-size: 12px;
+  }
+
+  .ingredients-list {
+    gap: 8px;
+  }
+
+  /* 原料行布局：
+     第一行: [原料名称]
+     第二行: [数量] [单位] [删除] */
+  .ingredient-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-rows: auto auto;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .ingredient-name {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .ingredient-quantity {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .ingredient-quantity :deep(.el-input-number) {
+    width: 100%;
+  }
+
+  .ingredient-unit {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 80px;
+  }
+
+  .ingredient-actions {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: center;
+  }
+
+  .ingredient-actions .el-button {
+    padding: 8px 10px;
+    font-size: 16px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* 其他采购布局：
+     第一行: [原料名称]
+     第二行: [数量] [单位] [删除]
+     第三行: [备注] */
+  .extra-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-rows: auto auto auto;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .extra-name {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .extra-quantity {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .extra-quantity :deep(.el-input-number) {
+    width: 100%;
+  }
+
+  .extra-unit {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 80px;
+  }
+
+  .extra-actions {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: center;
+  }
+
+  .extra-actions .el-button {
+    padding: 8px 10px;
+    font-size: 16px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* 汇总操作按钮 */
+  .summary-actions {
+    flex-direction: row;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .summary-actions .el-button {
+    margin: 0;
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  /* 汇总网格 */
   .summary-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .summary-item {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .summary-item-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .item-name {
+    font-size: 14px;
+  }
+
+  .item-quantity {
+    font-size: 13px;
+    padding: 3px 8px;
+  }
+
+  .summary-item-dishes {
+    gap: 4px;
+  }
+
+  .dish-source {
+    font-size: 11px;
+    padding: 4px 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .dish-detail {
+    font-size: 10px;
+  }
+
+  /* 添加按钮 */
+  .add-dish-bottom {
+    padding: 16px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  .add-dish-bottom .el-icon {
+    font-size: 18px;
+  }
+
+  .add-extra-bottom {
+    padding: 12px;
+    font-size: 12px;
+    border-radius: 8px;
+    margin-top: 10px;
+  }
+
+  /* 悬浮按钮 */
+  .fab-container {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .fab-btn {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .fab-btn :deep(.el-icon) {
+    font-size: 20px !important;
+  }
+
+  /* 空状态 */
+  .empty-state {
+    padding: 30px 0;
+  }
+}
+
+/* 超小屏幕 (<400px) */
+@media (max-width: 400px) {
+  .page-title {
+    font-size: 16px;
+  }
+
+  .header-actions .el-button {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .dish-header {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .index-badge {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  .dish-category :deep(.el-select) {
+    width: 64px !important;
+  }
+
+  .dish-portions :deep(.el-input-number) {
+    width: 90px;
+  }
+
+  .ingredients-section {
+    padding: 8px 10px;
+  }
+
+  .ingredient-row,
+  .extra-row {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .ingredient-unit,
+  .extra-unit {
+    min-width: 70px;
+  }
+
+  .ingredient-actions .el-button,
+  .extra-actions .el-button {
+    padding: 6px 8px;
+    min-width: 32px;
+    min-height: 32px;
+    font-size: 14px;
+  }
+
+  .summary-item {
+    padding: 10px;
+  }
+
+  .item-name {
+    font-size: 13px;
+  }
+
+  .add-dish-bottom {
+    padding: 14px;
+    font-size: 12px;
+  }
+
+  .fab-container {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .fab-btn {
+    width: 44px !important;
+    height: 44px !important;
   }
 }
 </style>

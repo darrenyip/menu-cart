@@ -16,7 +16,7 @@ export const menusApi = {
    */
   async getList(page = 1, perPage = 20, options = {}) {
     const result = await pb.collection(COLLECTION).getList(page, perPage, {
-      sort: '-date',
+      sort: '-created',
       ...options,
     })
 
@@ -81,14 +81,13 @@ export const menusApi = {
 
   /**
    * 创建菜单
-   * @param {object} data 菜单数据 { name, date, extra_purchases }
+   * @param {object} data 菜单数据 { name, extra_purchases }
    * @param {array} dishes 菜品列表
    */
   async create(data, dishes = []) {
     // 创建菜单（包含额外采购数据）
     const menu = await pb.collection(COLLECTION).create({
       name: data.name,
-      date: data.date,
       extra_purchases: data.extra_purchases || [],
     })
 
@@ -128,14 +127,13 @@ export const menusApi = {
   /**
    * 更新菜单
    * @param {string} id 菜单ID
-   * @param {object} data 更新数据 { name, date, extra_purchases }
+   * @param {object} data 更新数据 { name, extra_purchases }
    * @param {array} dishes 菜品列表
    */
   async update(id, data, dishes = []) {
     // 更新菜单基本信息（包含额外采购数据）
     const menu = await pb.collection(COLLECTION).update(id, {
       name: data.name,
-      date: data.date,
       extra_purchases: data.extra_purchases || [],
     })
 

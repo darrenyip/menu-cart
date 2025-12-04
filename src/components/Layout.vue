@@ -1,31 +1,51 @@
 <template>
   <el-container class="layout-container">
+    <!-- 移动端遮罩层 -->
+    <transition name="fade">
+      <div v-if="isMobile && mobileMenuOpen" class="sidebar-overlay" @click="closeMobileMenu"></div>
+    </transition>
+
     <!-- 侧边栏 -->
-    <el-aside :width="isCollapse ? '72px' : '240px'" class="sidebar">
+    <el-aside
+      :width="isCollapse ? '72px' : '240px'"
+      class="sidebar"
+      :class="{ 'mobile-open': mobileMenuOpen, 'mobile-hidden': isMobile && !mobileMenuOpen }"
+    >
       <!-- Logo 区域 -->
-      <div class="logo-section" @click="$router.push('/')">
+      <div class="logo-section" @click="handleLogoClick">
         <div class="logo-icon">
           <el-icon><Dish /></el-icon>
         </div>
         <transition name="fade">
-          <span v-if="!isCollapse" class="logo-text">菜单购物车</span>
+          <span v-if="!isCollapse || isMobile" class="logo-text">菜单购物车</span>
         </transition>
+        <!-- 移动端关闭按钮 -->
+        <el-button
+          v-if="isMobile"
+          class="mobile-close-btn"
+          text
+          circle
+          @click.stop="closeMobileMenu"
+        >
+          <el-icon><Close /></el-icon>
+        </el-button>
       </div>
 
       <!-- 导航菜单 -->
       <el-menu
         :default-active="activeMenu"
         class="sidebar-menu"
-        :collapse="isCollapse"
+        :collapse="isCollapse && !isMobile"
         :collapse-transition="false"
         router
+        @select="handleMenuSelect"
       >
         <el-menu-item index="/">
           <el-icon><HomeFilled /></el-icon>
           <template #title>首页</template>
         </el-menu-item>
 
-        <div class="menu-group-title" v-if="!isCollapse">
+        <div class="menu-group-title" v-if="!isCollapse || isMobile">
           <span>菜单管理</span>
         </div>
 
@@ -39,7 +59,7 @@
           <template #title>新建菜单</template>
         </el-menu-item>
 
-        <div class="menu-group-title" v-if="!isCollapse">
+        <div class="menu-group-title" v-if="!isCollapse || isMobile">
           <span>数据管理</span>
         </div>
 
@@ -54,8 +74,8 @@
         </el-menu-item>
       </el-menu>
 
-      <!-- 底部折叠按钮 -->
-      <div class="sidebar-footer">
+      <!-- 底部折叠按钮 (仅桌面端显示) -->
+      <div class="sidebar-footer" v-if="!isMobile">
         <div class="collapse-btn" @click="toggleCollapse">
           <el-icon v-if="isCollapse"><Expand /></el-icon>
           <el-icon v-else><Fold /></el-icon>
@@ -69,7 +89,11 @@
       <!-- 头部 -->
       <el-header class="header">
         <div class="header-left">
-          <el-breadcrumb separator="/">
+          <!-- 移动端汉堡菜单按钮 -->
+          <el-button v-if="isMobile" class="hamburger-btn" text @click="toggleMobileMenu">
+            <el-icon :size="22"><Menu /></el-icon>
+          </el-button>
+          <el-breadcrumb separator="/" class="breadcrumb-nav">
             <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
             <el-breadcrumb-item v-if="currentBreadcrumb">
               {{ currentBreadcrumb }}
@@ -82,7 +106,7 @@
               <el-icon><Refresh /></el-icon>
             </el-button>
           </el-tooltip>
-          
+
           <!-- 用户信息下拉菜单 -->
           <el-dropdown trigger="click" @command="handleUserCommand">
             <div class="user-info">
@@ -131,6 +155,8 @@ import {
   ArrowDown,
   Message,
   SwitchButton,
+  Menu,
+  Close,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import authApi from '@/api/auth'
@@ -151,11 +177,23 @@ export default {
     ArrowDown,
     Message,
     SwitchButton,
+    Menu,
+    Close,
   },
   data() {
     return {
       isCollapse: false,
+      isMobile: false,
+      mobileMenuOpen: false,
+      mobileBreakpoint: 768,
     }
+  },
+  mounted() {
+    this.checkMobile()
+    window.addEventListener('resize', this.checkMobile)
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.checkMobile)
   },
   computed: {
     activeMenu() {
@@ -200,6 +238,31 @@ export default {
     },
   },
   methods: {
+    checkMobile() {
+      this.isMobile = window.innerWidth < this.mobileBreakpoint
+      // 切换到桌面端时自动关闭移动菜单
+      if (!this.isMobile) {
+        this.mobileMenuOpen = false
+      }
+    },
+    toggleMobileMenu() {
+      this.mobileMenuOpen = !this.mobileMenuOpen
+    },
+    closeMobileMenu() {
+      this.mobileMenuOpen = false
+    },
+    handleLogoClick() {
+      this.$router.push('/')
+      if (this.isMobile) {
+        this.closeMobileMenu()
+      }
+    },
+    handleMenuSelect() {
+      // 移动端点击菜单项后自动关闭侧边栏
+      if (this.isMobile) {
+        this.closeMobileMenu()
+      }
+    },
     toggleCollapse() {
       this.isCollapse = !this.isCollapse
     },
@@ -209,15 +272,11 @@ export default {
     async handleUserCommand(command) {
       if (command === 'logout') {
         try {
-          await ElMessageBox.confirm(
-            '确定要退出登录吗？',
-            '退出确认',
-            {
-              confirmButtonText: '确定',
-              cancelButtonText: '取消',
-              type: 'warning',
-            }
-          )
+          await ElMessageBox.confirm('确定要退出登录吗？', '退出确认', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+          })
           authApi.logout()
           ElMessage.success('已退出登录')
           this.$router.push('/login')
@@ -255,7 +314,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(ellipse at 20% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
     radial-gradient(ellipse at 80% 100%, rgba(6, 182, 212, 0.06) 0%, transparent 50%);
   pointer-events: none;
@@ -263,12 +322,12 @@ export default {
 
 /* Logo 区域 */
 .logo-section {
-  height: 76px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  padding: 0 20px;
+  gap: 12px;
+  padding: 0 16px;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.02);
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -282,19 +341,19 @@ export default {
 }
 
 .logo-icon {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 18px;
   color: #fff;
   flex-shrink: 0;
   box-shadow: 
-    0 4px 16px rgba(16, 185, 129, 0.35),
-    0 0 20px rgba(16, 185, 129, 0.15);
+    0 4px 12px rgba(16, 185, 129, 0.35),
+    0 0 16px rgba(16, 185, 129, 0.15);
   position: relative;
 }
 
@@ -302,7 +361,7 @@ export default {
   content: '';
   position: absolute;
   inset: -2px;
-  border-radius: 14px;
+  border-radius: 12px;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.5) 0%, rgba(6, 182, 212, 0.5) 100%);
   z-index: -1;
   opacity: 0;
@@ -314,7 +373,7 @@ export default {
 }
 
 .logo-text {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
   color: #e2e8f0;
   white-space: nowrap;
@@ -409,7 +468,7 @@ export default {
 .sidebar-menu :deep(.el-menu-item.is-active) {
   background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.1) 100%);
   color: #10b981;
-  box-shadow: 
+  box-shadow:
     0 0 20px rgba(16, 185, 129, 0.15),
     inset 0 0 20px rgba(16, 185, 129, 0.05);
 }
@@ -614,5 +673,165 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* ================================
+   移动端响应式样式
+   ================================ */
+
+/* 移动端遮罩层 */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+  backdrop-filter: blur(4px);
+}
+
+/* 移动端汉堡菜单按钮 */
+.hamburger-btn {
+  margin-right: 12px;
+  color: #64748b;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.hamburger-btn:hover {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+/* 移动端关闭按钮 */
+.mobile-close-btn {
+  margin-left: auto;
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 20px;
+}
+
+.mobile-close-btn:hover {
+  color: #10b981;
+}
+
+/* 平板端响应式 (768px - 1024px) */
+@media (max-width: 1024px) and (min-width: 768px) {
+  .header {
+    padding: 0 16px;
+  }
+
+  .main-content {
+    padding: 16px;
+  }
+
+  .user-name {
+    display: none;
+  }
+}
+
+/* 移动端响应式 (<768px) */
+@media (max-width: 767px) {
+  /* 侧边栏作为抽屉覆盖显示 */
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 999;
+    width: 280px !important;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar.mobile-hidden {
+    transform: translateX(-100%);
+  }
+
+  /* Logo 区域在移动端调整 */
+  .logo-section {
+    padding: 0 16px;
+    justify-content: flex-start;
+  }
+
+  /* 头部调整 */
+  .header {
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  .header-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* 面包屑在移动端简化 */
+  .breadcrumb-nav {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .breadcrumb-nav :deep(.el-breadcrumb__item) {
+    max-width: 120px;
+  }
+
+  .breadcrumb-nav :deep(.el-breadcrumb__inner) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    max-width: 100%;
+  }
+
+  /* 用户信息简化 */
+  .user-info {
+    padding: 6px 8px;
+  }
+
+  .user-name {
+    display: none;
+  }
+
+  .user-arrow {
+    display: none;
+  }
+
+  /* 主内容区调整 */
+  .main-content {
+    padding: 12px;
+  }
+
+  /* 刷新按钮隐藏 */
+  .header-right > .el-button {
+    display: none;
+  }
+
+  .header-right > .el-dropdown {
+    display: flex;
+  }
+}
+
+/* 超小屏幕 (<480px) */
+@media (max-width: 479px) {
+  .sidebar {
+    width: 100% !important;
+  }
+
+  .header {
+    padding: 0 8px;
+  }
+
+  .breadcrumb-nav :deep(.el-breadcrumb__separator) {
+    margin: 0 4px;
+  }
+
+  .main-content {
+    padding: 8px;
+  }
 }
 </style>
