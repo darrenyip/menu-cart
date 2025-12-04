@@ -101,9 +101,6 @@
               {{ dishList.length }} 道菜
             </el-tag>
           </div>
-          <el-button type="primary" @click="addDish">
-            <el-icon><Plus /></el-icon>添加菜品
-          </el-button>
         </div>
       </template>
 
@@ -242,8 +239,23 @@
             </div>
           </div>
         </div>
+
+        <!-- 底部添加菜品按钮 -->
+        <div class="add-dish-bottom" @click="addDish">
+          <el-icon><Plus /></el-icon>
+          <span>添加菜品</span>
+        </div>
       </div>
     </el-card>
+
+    <!-- 悬浮添加按钮 -->
+    <div class="fab-container" v-show="dishList.length > 0">
+      <el-tooltip content="添加菜品" placement="left">
+        <el-button type="primary" circle class="fab-btn" @click="addDish">
+          <el-icon :size="24"><Plus /></el-icon>
+        </el-button>
+      </el-tooltip>
+    </div>
 
     <!-- 其他原料采购 -->
     <el-card class="extra-card" shadow="hover">
@@ -256,17 +268,10 @@
               {{ extraPurchases.length }} 项
             </el-tag>
           </div>
-          <el-button type="warning" plain @click="addExtraPurchase">
-            <el-icon><Plus /></el-icon>添加采购项
-          </el-button>
         </div>
       </template>
 
-      <div v-if="extraPurchases.length === 0" class="empty-extra">
-        <span>暂无其他采购项，点击上方按钮添加（如：大蒜2斤、酱油1瓶）</span>
-      </div>
-
-      <div v-else class="extra-list">
+      <div class="extra-list">
         <div
           v-for="(item, index) in extraPurchases"
           :key="index"
@@ -317,6 +322,12 @@
               <el-icon><Close /></el-icon>
             </el-button>
           </div>
+        </div>
+
+        <!-- 底部添加采购项按钮 -->
+        <div class="add-extra-bottom" @click="addExtraPurchase">
+          <el-icon><Plus /></el-icon>
+          <span>添加采购项</span>
         </div>
       </div>
     </el-card>
@@ -581,22 +592,48 @@ export default {
         })
       })
 
-      // 处理其他原料采购（单独显示，不合并到菜品原料）
+      // 处理其他原料采购（与菜品原料合并）
       this.extraPurchases.forEach((item) => {
         if (!item.name || !item.quantity) return
 
-        const key = `__extra__${item.name}_${item.unit}`
-        summary[key] = {
-          name: item.name,
-          originalUnit: item.unit || '份',
-          totalQuantity: item.quantity,
-          dishes: [{
+        const key = item.name
+        
+        // 如果已经存在该原料（来自菜品），则合并
+        if (summary[key]) {
+          // 将其他采购的数量转换为与已有原料相同的单位后合并
+          // 先转换为克，再加到总量中
+          const existingUnit = summary[key].originalUnit
+          const itemUnit = item.unit || '份'
+          
+          // 如果单位相同，直接加
+          if (existingUnit === itemUnit) {
+            summary[key].totalQuantity += item.quantity
+          } else {
+            // 单位不同，尝试转换（将采购单位转为已有单位）
+            const convertedQuantity = this.convertUnits(item.quantity, itemUnit, existingUnit)
+            summary[key].totalQuantity += convertedQuantity
+          }
+          
+          summary[key].dishes.push({
             name: '其他采购' + (item.remark ? `(${item.remark})` : ''),
             quantity: item.quantity,
-            unit: item.unit || '份',
+            unit: itemUnit,
             portions: 1,
-          }],
-          isExtra: true,
+          })
+        } else {
+          // 不存在该原料，新建条目
+          summary[key] = {
+            name: item.name,
+            originalUnit: item.unit || '份',
+            totalQuantity: item.quantity,
+            dishes: [{
+              name: '其他采购' + (item.remark ? `(${item.remark})` : ''),
+              quantity: item.quantity,
+              unit: item.unit || '份',
+              portions: 1,
+            }],
+            isExtra: true,
+          }
         }
       })
 
@@ -1137,6 +1174,30 @@ export default {
       }
     },
 
+    // 单位转换（将源单位转换为目标单位）
+    convertUnits(quantity, fromUnit, toUnit) {
+      // 各单位转换为克的系数
+      const toGram = {
+        克: 1,
+        千克: 1000,
+        公斤: 1000,
+        斤: 500,
+        两: 50,
+      }
+
+      // 如果单位相同，直接返回
+      if (fromUnit === toUnit) return quantity
+
+      // 都是重量单位，进行转换
+      if (toGram[fromUnit] && toGram[toUnit]) {
+        const gramQuantity = quantity * toGram[fromUnit]
+        return gramQuantity / toGram[toUnit]
+      }
+
+      // 无法转换，直接返回原数量
+      return quantity
+    },
+
     async copyToClipboard() {
       try {
         const copyText = this.ingredientSummary
@@ -1473,6 +1534,81 @@ export default {
   gap: 20px;
 }
 
+/* 底部添加菜品按钮 */
+.add-dish-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  border: 2px dashed rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.02) 0%, rgba(6, 182, 212, 0.02) 100%);
+  color: #10b981;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-dish-bottom:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.05) 100%);
+  transform: translateY(-2px);
+}
+
+.add-dish-bottom .el-icon {
+  font-size: 20px;
+}
+
+/* 底部添加采购项按钮 */
+.add-extra-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px;
+  border: 2px dashed rgba(245, 158, 11, 0.3);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.02) 0%, rgba(251, 191, 36, 0.02) 100%);
+  color: #f59e0b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 12px;
+}
+
+.add-extra-bottom:hover {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(251, 191, 36, 0.05) 100%);
+  transform: translateY(-2px);
+}
+
+.add-extra-bottom .el-icon {
+  font-size: 18px;
+}
+
+/* 悬浮添加按钮 */
+.fab-container {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
+  z-index: 100;
+}
+
+.fab-btn {
+  width: 56px !important;
+  height: 56px !important;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+  transition: all 0.3s ease;
+}
+
+.fab-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.5);
+}
+
 .dish-item {
   background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
   border: 1px solid rgba(16, 185, 129, 0.12);
@@ -1784,16 +1920,6 @@ export default {
 
 .extra-icon {
   color: #f59e0b !important;
-}
-
-.empty-extra {
-  padding: 24px;
-  text-align: center;
-  color: #9ca3af;
-  background-color: #fffbeb;
-  border-radius: 8px;
-  font-size: 13px;
-  border: 1px dashed #fcd34d;
 }
 
 .extra-list {

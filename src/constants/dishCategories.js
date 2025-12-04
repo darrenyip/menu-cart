@@ -5,7 +5,7 @@
  */
 
 // 分类列表
-export const DISH_CATEGORIES = ['荤菜', '半荤', '素菜', '炖汤', '主食']
+export const DISH_CATEGORIES = ['荤菜', '半荤', '素菜', '炖汤', '主食', '套餐']
 
 // 分类对应的标签颜色 (Element Plus tag type)
 export const CATEGORY_TAG_TYPES = {
@@ -14,6 +14,7 @@ export const CATEGORY_TAG_TYPES = {
   '素菜': 'success',   // 绿色
   '炖汤': 'info',      // 蓝色
   '主食': '',          // 默认灰色
+  '套餐': 'primary',   // 主题蓝色
   '未分类': 'info',
 }
 
@@ -24,6 +25,7 @@ export const CATEGORY_ICONS = {
   '素菜': '🥬',
   '炖汤': '🍲',
   '主食': '🍚',
+  '套餐': '🍱',
 }
 
 // 分类对应的颜色（用于自定义样式）
@@ -33,6 +35,7 @@ export const CATEGORY_COLORS = {
   '素菜': '#22c55e',
   '炖汤': '#3b82f6',
   '主食': '#6b7280',
+  '套餐': '#8b5cf6',
 }
 
 /**
