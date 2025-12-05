@@ -49,7 +49,10 @@
         <div v-if="dishNames.length > 0" class="dish-names-preview">
           <div class="dish-names-label">
             <el-icon><Dish /></el-icon>
-            <span>今日菜品</span>
+            <span>菜单列表</span>
+            <span class="total-cost" v-if="totalMenuCost > 0">
+              合计：¥{{ totalMenuCost.toFixed(2) }}
+            </span>
           </div>
           <div class="dish-names-grouped">
             <div 
@@ -58,15 +61,24 @@
               class="dish-category-group"
             >
               <span class="category-label">{{ category }}</span>
-              <el-tag 
+              <el-tooltip 
                 v-for="(dish, index) in group" 
                 :key="index"
-                class="dish-name-tag"
-                :type="getCategoryTagType(category)"
-                effect="plain"
+                :content="getDishCostTooltip(dish)"
+                placement="top"
+                :disabled="!getDishCost(dish)"
               >
-                {{ dish.name }}
-              </el-tag>
+                <el-tag 
+                  class="dish-name-tag with-price"
+                  :type="getCategoryTagType(category)"
+                  effect="plain"
+                >
+                  <span class="dish-tag-name">{{ dish.name }}</span>
+                  <span class="dish-tag-price" v-if="getDishCost(dish)">
+                    ¥{{ getDishCost(dish).toFixed(2) }}
+                  </span>
+                </el-tag>
+              </el-tooltip>
             </div>
           </div>
         </div>
@@ -516,6 +528,7 @@ export default {
           groups[category].push({
             name: dish.name.trim(),
             portions: dish.portions,
+            ingredients: dish.ingredients || [],
           })
         })
       
@@ -530,6 +543,18 @@ export default {
         orderedGroups['未分类'] = groups['未分类']
       }
       return orderedGroups
+    },
+    // 菜单总成本（所有菜品的成本总和）
+    totalMenuCost() {
+      let total = 0
+      this.dishList.forEach(dish => {
+        if (!dish.name?.trim()) return
+        const cost = this.calculateDishCost(dish.ingredients)
+        if (cost > 0) {
+          total += cost * (dish.portions || 1)
+        }
+      })
+      return total
     },
     ingredientSummary() {
       const summary = {}
@@ -639,6 +664,64 @@ export default {
   methods: {
     // 获取分类对应的标签颜色（使用统一配置）
     getCategoryTagType,
+    
+    // 计算单道菜的原料成本（一份）
+    calculateDishCost(ingredients) {
+      if (!ingredients || ingredients.length === 0) return 0
+      
+      let totalCost = 0
+      ingredients.forEach(ing => {
+        if (!ing.name || !ing.quantity) return
+        
+        // 从原料列表中查找该原料的价格信息
+        const material = this.ingredientList.find(m => m.name === ing.name)
+        if (!material || typeof material.purchase_price !== 'number') return
+        
+        // 计算成本：先将原料用量转换为采购单位，再乘以采购单价
+        // 原料用量单位 -> 克 -> 采购单位
+        const toGram = {
+          克: 1,
+          千克: 1000,
+          公斤: 1000,
+          斤: 500,
+          两: 50,
+        }
+        
+        const ingredientUnit = ing.unit || '克'
+        const conversionRate = material.conversion_rate || 500 // 采购单位对应的克数
+        
+        // 如果原料单位是重量单位，进行换算
+        if (toGram[ingredientUnit]) {
+          // 先转换为克
+          const gramQuantity = ing.quantity * toGram[ingredientUnit]
+          // 再转换为采购单位数量
+          const purchaseQuantity = gramQuantity / conversionRate
+          // 计算成本
+          totalCost += purchaseQuantity * material.purchase_price
+        } else {
+          // 非重量单位（个、根等），假设直接使用采购单价
+          totalCost += ing.quantity * material.purchase_price
+        }
+      })
+      
+      return totalCost
+    },
+    
+    // 获取菜品成本（一份）
+    getDishCost(dish) {
+      return this.calculateDishCost(dish.ingredients)
+    },
+    
+    // 获取菜品成本提示信息
+    getDishCostTooltip(dish) {
+      const cost = this.calculateDishCost(dish.ingredients)
+      if (!cost) return ''
+      const portions = dish.portions || 1
+      if (portions > 1) {
+        return `单份成本: ¥${cost.toFixed(2)} | ${portions}份合计: ¥${(cost * portions).toFixed(2)}`
+      }
+      return `单份成本: ¥${cost.toFixed(2)}`
+    },
     // 加载菜谱和原料数据
     async loadData() {
       try {
@@ -660,12 +743,16 @@ export default {
           ingredients: recipe.ingredients || [],
         }))
 
-        // 格式化原料数据用于自动补全（使用基础单位）
+        // 格式化原料数据用于自动补全（使用基础单位，包含价格信息）
         this.ingredientList = materialsResult.map((material) => ({
           value: material.name,
           id: material.id,
           name: material.name,
           unit: material.base_unit || material.unit || '克', // 优先使用基础单位
+          // 价格相关字段
+          purchase_price: material.purchase_price || 0,
+          purchase_unit: material.purchase_unit || '斤',
+          conversion_rate: material.conversion_rate || 500, // 默认 1斤=500克
         }))
 
         console.log('格式化后的菜谱列表:', this.recipeList)
@@ -1523,6 +1610,16 @@ export default {
   font-size: 16px;
 }
 
+.dish-names-label .total-cost {
+  margin-left: auto;
+  font-size: 15px;
+  font-weight: 700;
+  color: #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.08) 100%);
+  padding: 4px 12px;
+  border-radius: 16px;
+}
+
 .dish-names-list {
   display: flex;
   flex-wrap: wrap;
@@ -1560,6 +1657,48 @@ export default {
   border-radius: 16px;
   font-weight: 500;
   transition: all 0.2s ease;
+}
+
+.dish-name-tag.with-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 12px;
+}
+
+.dish-tag-name {
+  font-weight: 500;
+}
+
+.dish-tag-price {
+  font-size: 12px;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 2px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* 不同分类的价格颜色 */
+.el-tag--danger .dish-tag-price {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.el-tag--warning .dish-tag-price {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.el-tag--success .dish-tag-price {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.el-tag--primary .dish-tag-price {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.12);
 }
 
 .dish-name-tag:hover {
@@ -2314,6 +2453,16 @@ export default {
   .dish-names-label {
     font-size: 13px;
     margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .dish-names-label .total-cost {
+    font-size: 13px;
+    padding: 3px 10px;
+    margin-left: 0;
+    flex-basis: 100%;
+    text-align: center;
   }
 
   .dish-category-group {
@@ -2328,6 +2477,16 @@ export default {
   .dish-name-tag {
     font-size: 12px;
     padding: 4px 10px;
+  }
+
+  .dish-name-tag.with-price {
+    padding: 4px 8px 4px 10px;
+    gap: 4px;
+  }
+
+  .dish-tag-price {
+    font-size: 10px;
+    padding: 1px 5px;
   }
 
   /* 菜品卡片 */
