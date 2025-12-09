@@ -437,87 +437,13 @@
       </el-card>
     </div>
 
-    <!-- 编辑原料对话框 -->
-    <el-dialog
+    <!-- 编辑原料对话框（使用统一组件） -->
+    <MaterialEditDialog
       v-model="materialEditDialog.visible"
-      title="编辑原料"
-      width="480px"
-      class="material-edit-dialog"
-      :close-on-click-modal="false"
-    >
-      <el-form :model="materialEditDialog.form" label-position="top">
-        <el-form-item label="原料名称">
-          <el-input v-model="materialEditDialog.form.name" disabled />
-        </el-form-item>
-
-        <el-divider content-position="left">采购信息</el-divider>
-
-        <div class="form-row">
-          <el-form-item label="采购单位" class="half-width">
-            <el-select v-model="materialEditDialog.form.purchase_unit" placeholder="选择单位">
-              <el-option label="斤" value="斤" />
-              <el-option label="公斤" value="公斤" />
-              <el-option label="个" value="个" />
-              <el-option label="瓶" value="瓶" />
-              <el-option label="袋" value="袋" />
-              <el-option label="包" value="包" />
-              <el-option label="盒" value="盒" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="采购单价" class="half-width">
-            <el-input-number
-              v-model="materialEditDialog.form.purchase_price"
-              :min="0"
-              :precision="2"
-              :step="0.5"
-              controls-position="right"
-              style="width: 100%"
-            />
-          </el-form-item>
-        </div>
-
-        <el-divider content-position="left">单位换算</el-divider>
-
-        <div class="form-row">
-          <el-form-item label="基础单位" class="half-width">
-            <el-select v-model="materialEditDialog.form.base_unit" placeholder="选择单位">
-              <el-option label="克" value="克" />
-              <el-option label="千克" value="千克" />
-              <el-option label="个" value="个" />
-              <el-option label="根" value="根" />
-              <el-option label="片" value="片" />
-              <el-option label="块" value="块" />
-              <el-option label="毫升" value="毫升" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="换算比例" class="half-width">
-            <el-input-number
-              v-model="materialEditDialog.form.conversion_rate"
-              :min="1"
-              :precision="0"
-              controls-position="right"
-              style="width: 100%"
-            />
-          </el-form-item>
-        </div>
-
-        <div
-          class="conversion-hint"
-          v-if="materialEditDialog.form.purchase_unit && materialEditDialog.form.base_unit"
-        >
-          <el-icon><InfoFilled /></el-icon>
-          换算关系：1 {{ materialEditDialog.form.purchase_unit }} =
-          {{ materialEditDialog.form.conversion_rate }} {{ materialEditDialog.form.base_unit }}
-        </div>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="materialEditDialog.visible = false">取消</el-button>
-        <el-button type="primary" @click="saveMaterialEdit" :loading="materialEditDialog.saving">
-          保存修改
-        </el-button>
-      </template>
-    </el-dialog>
+      :material="materialEditDialog.editMaterial"
+      :supplier-options="supplierOptions"
+      @saved="onMaterialSaved"
+    />
   </div>
 </template>
 
@@ -537,7 +463,6 @@ import {
   ShoppingCart,
   DataAnalysis,
   Download,
-  InfoFilled,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { DISH_CATEGORIES, getCategoryTagType } from '@/constants/dishCategories'
@@ -545,6 +470,7 @@ import { loadXLSX } from '@/utils/xlsx'
 import menusApi from '@/api/menus'
 import recipesApi from '@/api/recipes'
 import materialsApi from '@/api/materials'
+import MaterialEditDialog from '@/components/MaterialEditDialog.vue'
 
 export default {
   name: 'MenuAdd',
@@ -563,7 +489,7 @@ export default {
     ShoppingCart,
     DataAnalysis,
     Download,
-    InfoFilled,
+    MaterialEditDialog,
   },
   data() {
     return {
@@ -632,16 +558,11 @@ export default {
       // 编辑原料对话框
       materialEditDialog: {
         visible: false,
-        saving: false,
-        ingredient: null, // 当前编辑的原料引用
-        form: {
-          name: '',
-          purchase_unit: '斤',
-          purchase_price: 0,
-          base_unit: '克',
-          conversion_rate: 500,
-        },
+        editMaterial: null, // 当前编辑的原料
+        ingredient: null, // 当前编辑的原料引用（用于更新单位）
       },
+      // 供应商选项
+      supplierOptions: ['乐禾', '快驴', '超市'],
     }
   },
   computed: {
@@ -1409,90 +1330,33 @@ export default {
     openMaterialEditDialog(ingredient) {
       const material = this.ingredientList.find((m) => m.name === ingredient.name)
 
-      this.materialEditDialog.ingredient = ingredient
-      this.materialEditDialog.form = {
+      // 构造编辑用的原料数据
+      this.materialEditDialog.editMaterial = {
+        id: material?.id || null,
         name: ingredient.name,
         purchase_unit: material?.purchase_unit || '斤',
         purchase_price: material?.purchase_price || 0,
+        supplier: material?.supplier || '',
         base_unit: ingredient.unit || material?.unit || '克',
         conversion_rate: material?.conversion_rate || 500,
       }
+      this.materialEditDialog.ingredient = ingredient
       this.materialEditDialog.visible = true
     },
 
-    // 保存原料编辑
-    async saveMaterialEdit() {
-      const { form, ingredient } = this.materialEditDialog
-
-      if (!form.name) {
-        ElMessage.warning('原料名称不能为空')
-        return
-      }
-
-      this.materialEditDialog.saving = true
-
-      try {
-        // 查找是否已存在该原料
-        const existingMaterial = this.ingredientList.find((m) => m.name === form.name)
-
-        if (existingMaterial) {
-          // 更新已有原料
-          await materialsApi.update(existingMaterial.id, {
-            purchase_unit: form.purchase_unit,
-            purchase_price: form.purchase_price,
-            base_unit: form.base_unit,
-            conversion_rate: form.conversion_rate,
-          })
-
-          // 更新本地缓存
-          existingMaterial.purchase_unit = form.purchase_unit
-          existingMaterial.purchase_price = form.purchase_price
-          existingMaterial.unit = form.base_unit
-          existingMaterial.conversion_rate = form.conversion_rate
-
-          ElMessage.success(`原料「${form.name}」已更新`)
-        } else {
-          // 创建新原料
-          const newMaterial = await materialsApi.create({
-            name: form.name,
-            purchase_unit: form.purchase_unit,
-            purchase_price: form.purchase_price,
-            base_unit: form.base_unit,
-            conversion_rate: form.conversion_rate,
-            unit: form.base_unit,
-            price: form.purchase_price,
-          })
-
-          // 添加到本地列表
-          this.ingredientList.push({
-            value: newMaterial.name,
-            id: newMaterial.id,
-            name: newMaterial.name,
-            unit: form.base_unit,
-            purchase_unit: form.purchase_unit,
-            purchase_price: form.purchase_price,
-            conversion_rate: form.conversion_rate,
-          })
-
-          // 更新当前原料的 materialId
-          if (ingredient) {
-            ingredient.materialId = newMaterial.id
-          }
-
-          ElMessage.success(`原料「${form.name}」已创建`)
+    // 原料保存成功后的回调
+    async onMaterialSaved() {
+      // 重新加载原料列表以获取最新数据
+      await this.loadData()
+      
+      // 更新当前编辑的原料单位
+      const ingredient = this.materialEditDialog.ingredient
+      if (ingredient) {
+        const updatedMaterial = this.ingredientList.find((m) => m.name === ingredient.name)
+        if (updatedMaterial) {
+          ingredient.unit = updatedMaterial.unit
+          ingredient.materialId = updatedMaterial.id
         }
-
-        // 更新当前原料的单位（同步基础单位）
-        if (ingredient) {
-          ingredient.unit = form.base_unit
-        }
-
-        this.materialEditDialog.visible = false
-      } catch (error) {
-        console.error('保存原料失败:', error)
-        ElMessage.error('保存失败，请重试')
-      } finally {
-        this.materialEditDialog.saving = false
       }
     },
 
@@ -2355,38 +2219,6 @@ export default {
   opacity: 1;
 }
 
-/* 编辑原料对话框 */
-.material-edit-dialog .form-row {
-  display: flex;
-  gap: 16px;
-}
-
-.material-edit-dialog .form-row .half-width {
-  flex: 1;
-}
-
-.material-edit-dialog .conversion-hint {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%);
-  border-radius: 8px;
-  font-size: 14px;
-  color: #10b981;
-  font-weight: 500;
-}
-
-.material-edit-dialog .conversion-hint .el-icon {
-  font-size: 16px;
-}
-
-.material-edit-dialog :deep(.el-divider__text) {
-  font-size: 13px;
-  color: #6b7280;
-  font-weight: 500;
-}
-
 .ingredient-actions {
   flex: 0 0 auto;
 }
@@ -3121,12 +2953,6 @@ export default {
 
   .ingredient-price-btn .edit-icon {
     font-size: 10px;
-  }
-
-  /* 对话框手机端适配 */
-  .material-edit-dialog .form-row {
-    flex-direction: column;
-    gap: 0;
   }
 
   .ingredient-actions {

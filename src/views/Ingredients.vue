@@ -1,247 +1,332 @@
 <template>
   <div class="ingredients-page">
     <div class="page-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <h2 class="page-title">原料管理</h2>
-      <el-button type="primary" @click="openAddDialog" class="add-btn">
-        <el-icon><Plus /></el-icon>新增原料
-      </el-button>
-    </div>
-
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索原料名称..."
-        size="large"
-        clearable
-        @keyup.enter="handleSearch"
-        @clear="handleSearch"
-        class="search-input"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-        <template #append>
-          <el-button @click="handleSearch">
-            <el-icon><Search /></el-icon>搜索
-          </el-button>
-        </template>
-      </el-input>
-      <div class="search-result" v-if="searchKeyword && total > 0">
-        <el-tag type="info" size="small" effect="plain">
-          找到 {{ total }} 个原料
-        </el-tag>
-        <el-button text type="primary" size="small" @click="clearSearch">
-          清除搜索
+      <!-- 页面头部 -->
+      <div class="page-header">
+        <h2 class="page-title">原料管理</h2>
+        <el-button type="primary" @click="openAddDialog" class="add-btn">
+          <el-icon><Plus /></el-icon>新增原料
         </el-button>
       </div>
-    </div>
 
-    <!-- 原料列表 -->
-    <el-card class="table-card" shadow="hover">
-      <el-table
-        :data="ingredientList"
-        style="width: 100%"
-        v-loading="loading"
-        empty-text="暂无原料数据"
-        row-class-name="table-row"
-      >
-        <el-table-column prop="name" label="原料名称" min-width="180">
-          <template #default="scope">
-            <span class="ingredient-name" v-html="highlightKeyword(scope.row.name)"></span>
+      <!-- 搜索栏 -->
+      <div class="search-bar">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索原料名称..."
+          size="large"
+          clearable
+          @keyup.enter="handleSearch"
+          @clear="handleSearch"
+          class="search-input"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
           </template>
-        </el-table-column>
-        <el-table-column label="采购信息" min-width="140" align="center">
-          <template #default="scope">
-            <div class="purchase-info">
-              <span class="price">¥{{ formatPrice(scope.row.purchase_price || scope.row.price) }}</span>
-              <span class="unit">/{{ scope.row.purchase_unit || scope.row.unit || '份' }}</span>
-            </div>
+          <template #append>
+            <el-button @click="handleSearch">
+              <el-icon><Search /></el-icon>搜索
+            </el-button>
           </template>
-        </el-table-column>
-        <el-table-column label="换算" min-width="150" align="center">
-          <template #default="scope">
-            <div class="conversion-info" v-if="scope.row.conversion_rate">
-              <span class="from">1{{ scope.row.purchase_unit || '份' }}</span>
-              <el-icon class="arrow"><Right /></el-icon>
-              <span class="to">{{ scope.row.conversion_rate }}{{ scope.row.base_unit || '克' }}</span>
-            </div>
-            <span v-else class="no-data">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" fixed="right" width="160" align="center">
-          <template #default="scope">
-            <div class="action-btns">
-              <el-button class="action-btn edit-btn" @click="openEditDialog(scope.row)">
-                编辑
-              </el-button>
-              <el-button class="action-btn delete-btn" @click="handleDelete(scope.row)">
-                删除
-              </el-button>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <div class="pagination-wrap">
-        <el-pagination
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-          :current-page="currentPage"
-          :page-sizes="[10, 20, 50, 100]"
-          :page-size="pageSize"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          background
-        />
-      </div>
-    </el-card>
-
-    </div>
-
-    <!-- 新增/编辑原料对话框 -->
-    <el-dialog
-      v-model="editDialogVisible"
-      :title="isEdit ? '编辑原料' : '新增原料'"
-      width="560px"
-      @close="resetForm"
-      class="edit-dialog"
-    >
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="formRules"
-        label-width="80px"
-        label-position="left"
-      >
-        <el-form-item label="原料名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入原料名称" size="large" clearable />
-        </el-form-item>
-
-        <el-divider>
-          <el-icon><ShoppingCart /></el-icon>
-          <span>采购信息</span>
-        </el-divider>
-
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="采购单位" prop="purchase_unit">
-              <el-select v-model="form.purchase_unit" placeholder="选择单位" filterable allow-create style="width: 100%">
-                <el-option label="斤" value="斤" />
-                <el-option label="公斤" value="公斤" />
-                <el-option label="个" value="个" />
-                <el-option label="只" value="只" />
-                <el-option label="瓶" value="瓶" />
-                <el-option label="袋" value="袋" />
-                <el-option label="包" value="包" />
-                <el-option label="盒" value="盒" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="采购单价" prop="purchase_price">
-              <el-input-number
-                v-model="form.purchase_price"
-                :min="0"
-                :precision="2"
-                :step="0.5"
-                placeholder="0.00"
-                style="width: 100%"
-                controls-position="right"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-divider>
-          <el-icon><ScaleToOriginal /></el-icon>
-          <span>单位换算</span>
-        </el-divider>
-
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="基础单位" prop="base_unit">
-              <el-select v-model="form.base_unit" placeholder="配菜单位" style="width: 100%">
-                <el-option-group label="重量">
-                  <el-option label="克" value="克" />
-                  <el-option label="千克" value="千克" />
-                </el-option-group>
-                <el-option-group label="数量">
-                  <el-option label="个" value="个" />
-                  <el-option label="只" value="只" />
-                  <el-option label="根" value="根" />
-                  <el-option label="片" value="片" />
-                </el-option-group>
-                <el-option-group label="容量">
-                  <el-option label="毫升" value="毫升" />
-                  <el-option label="升" value="升" />
-                </el-option-group>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="换算比例" prop="conversion_rate">
-              <el-input-number
-                v-model="form.conversion_rate"
-                :min="0"
-                :precision="0"
-                placeholder="如: 500"
-                style="width: 100%"
-                controls-position="right"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <div class="conversion-preview" v-if="form.purchase_unit && form.base_unit && form.conversion_rate">
-          <el-icon><InfoFilled /></el-icon>
-          <span>换算关系：1 {{ form.purchase_unit }} = {{ form.conversion_rate }} {{ form.base_unit }}</span>
+        </el-input>
+        <div class="search-result" v-if="searchKeyword && total > 0">
+          <el-tag type="info" size="small" effect="plain"> 找到 {{ total }} 个原料 </el-tag>
+          <el-button text type="primary" size="small" @click="clearSearch"> 清除搜索 </el-button>
         </div>
-      </el-form>
+      </div>
 
-      <template #footer>
-        <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving">
-          {{ isEdit ? '保存修改' : '确认添加' }}
-        </el-button>
-      </template>
+      <!-- 原料列表 -->
+      <el-card class="table-card" shadow="hover">
+        <el-table
+          :data="ingredientList"
+          style="width: 100%"
+          v-loading="loading"
+          empty-text="暂无原料数据"
+          row-class-name="table-row"
+        >
+          <el-table-column prop="name" label="原料名称" min-width="180">
+            <template #default="scope">
+              <span class="ingredient-name" v-html="highlightKeyword(scope.row.name)"></span>
+            </template>
+          </el-table-column>
+          <el-table-column label="采购信息" min-width="140" align="center">
+            <template #default="scope">
+              <div class="purchase-info">
+                <span class="price"
+                  >¥{{ formatPrice(scope.row.purchase_price || scope.row.price) }}</span
+                >
+                <span class="unit">/{{ scope.row.purchase_unit || scope.row.unit || '份' }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="换算" min-width="150" align="center">
+            <template #default="scope">
+              <div class="conversion-info" v-if="scope.row.conversion_rate">
+                <span class="from">1{{ scope.row.purchase_unit || '份' }}</span>
+                <el-icon class="arrow"><Right /></el-icon>
+                <span class="to"
+                  >{{ scope.row.conversion_rate }}{{ scope.row.base_unit || '克' }}</span
+                >
+              </div>
+              <span v-else class="no-data">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" fixed="right" width="220" align="center">
+            <template #default="scope">
+              <div class="action-btns">
+                <el-button class="action-btn history-btn" @click="openPriceHistory(scope.row)">
+                  <el-icon><TrendCharts /></el-icon>
+                </el-button>
+                <el-button class="action-btn edit-btn" @click="openEditDialog(scope.row)">
+                  编辑
+                </el-button>
+                <el-button class="action-btn delete-btn" @click="handleDelete(scope.row)">
+                  删除
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- 分页 -->
+        <div class="pagination-wrap">
+          <el-pagination
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+            :current-page="currentPage"
+            :page-sizes="[10, 20, 50, 100]"
+            :page-size="pageSize"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="total"
+            background
+          />
+        </div>
+      </el-card>
+    </div>
+
+    <!-- 新增/编辑原料对话框（抽成独立组件） -->
+    <MaterialEditDialog
+      v-model="editDialogVisible"
+      :material="editMaterial"
+      :supplier-options="supplierOptions"
+      @saved="loadData"
+    />
+
+    <!-- 价格历史对话框 -->
+    <el-dialog
+      v-model="priceHistoryVisible"
+      :title="`${currentMaterial?.name || ''} - 价格历史`"
+      width="700px"
+      class="price-history-dialog"
+      destroy-on-close
+    >
+      <div class="price-history-content" v-loading="priceHistoryLoading">
+        <!-- 价格趋势图表 -->
+        <div class="chart-section" v-if="priceHistoryData.length > 0">
+          <h4 class="section-title">
+            <el-icon><TrendCharts /></el-icon>
+            <span>价格趋势</span>
+          </h4>
+          <div class="chart-container">
+            <v-chart :option="chartOption" autoresize style="height: 250px" />
+          </div>
+        </div>
+
+        <!-- 价格统计 -->
+        <div class="stats-section" v-if="priceHistoryData.length > 0">
+          <div class="stat-item">
+            <span class="stat-label">当前价格</span>
+            <span class="stat-value current"
+              >¥{{ formatPrice(currentMaterial?.purchase_price) }}</span
+            >
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">最高价格</span>
+            <span class="stat-value high">¥{{ formatPrice(priceStats.max) }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">最低价格</span>
+            <span class="stat-value low">¥{{ formatPrice(priceStats.min) }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">平均价格</span>
+            <span class="stat-value avg">¥{{ formatPrice(priceStats.avg) }}</span>
+          </div>
+        </div>
+
+        <!-- 历史记录列表 -->
+        <div class="history-list-section">
+          <h4 class="section-title">
+            <el-icon><List /></el-icon>
+            <span>历史记录</span>
+            <el-button
+              type="primary"
+              size="small"
+              text
+              @click="showAddPriceForm = true"
+              v-if="!showAddPriceForm"
+            >
+              <el-icon><Plus /></el-icon>手动记录
+            </el-button>
+          </h4>
+
+          <!-- 添加价格表单 -->
+          <div class="add-price-form" v-if="showAddPriceForm">
+            <div class="form-header">
+              <el-icon class="form-icon"><Plus /></el-icon>
+              <span>记录新价格</span>
+            </div>
+            <el-form label-position="top" size="default">
+              <el-row :gutter="12">
+                <el-col :xs="12" :sm="6">
+                  <el-form-item label="价格 (元)" required>
+                    <el-input-number
+                      v-model="newPriceForm.price"
+                      :min="0"
+                      :precision="2"
+                      :step="0.5"
+                      placeholder="0.00"
+                      style="width: 100%"
+                      controls-position="right"
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :xs="12" :sm="6">
+                  <el-form-item label="日期" required>
+                    <el-date-picker
+                      v-model="newPriceForm.date"
+                      type="date"
+                      placeholder="选择日期"
+                      format="YYYY-MM-DD"
+                      value-format="YYYY-MM-DD"
+                      style="width: 100%"
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :xs="12" :sm="6">
+                  <el-form-item label="供应商/来源">
+                    <el-select
+                      v-model="newPriceForm.supplier"
+                      placeholder="选择或输入"
+                      filterable
+                      allow-create
+                      clearable
+                      style="width: 100%"
+                    >
+                      <el-option v-for="s in supplierOptions" :key="s" :label="s" :value="s" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :xs="12" :sm="6">
+                  <el-form-item label="备注">
+                    <el-input v-model="newPriceForm.note" placeholder="可选" clearable />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <div class="form-actions">
+                <el-button @click="showAddPriceForm = false">取消</el-button>
+                <el-button type="primary" @click="handleAddPrice" :loading="addingPrice">
+                  <el-icon><Check /></el-icon>确认添加
+                </el-button>
+              </div>
+            </el-form>
+          </div>
+
+          <el-table
+            :data="priceHistoryData"
+            style="width: 100%"
+            max-height="300"
+            empty-text="暂无价格记录"
+          >
+            <el-table-column prop="date" label="日期" width="110">
+              <template #default="scope">
+                {{ formatDate(scope.row.date) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="price" label="价格" width="90">
+              <template #default="scope">
+                <span class="price-cell">¥{{ formatPrice(scope.row.price) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="supplier" label="供应商" min-width="100">
+              <template #default="scope">
+                <el-tag v-if="scope.row.supplier" size="small" type="info" effect="plain">
+                  {{ scope.row.supplier }}
+                </el-tag>
+                <span v-else class="note-cell">-</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="note" label="备注" min-width="120">
+              <template #default="scope">
+                <span class="note-cell">{{ scope.row.note || '-' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="70" align="center">
+              <template #default="scope">
+                <el-button type="danger" size="small" text @click="handleDeletePrice(scope.row)">
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <!-- 空状态 -->
+        <el-empty
+          v-if="!priceHistoryLoading && priceHistoryData.length === 0"
+          description="暂无价格历史记录"
+        >
+          <el-button type="primary" @click="showAddPriceForm = true">
+            <el-icon><Plus /></el-icon>记录第一条价格
+          </el-button>
+        </el-empty>
+      </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import {
-  Plus,
-  Edit,
-  Delete,
-  Search,
-  Right,
-  ShoppingCart,
-  ScaleToOriginal,
-  InfoFilled,
-} from '@element-plus/icons-vue'
+import { Plus, Search, Right, TrendCharts, List, Check } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart } from 'echarts/charts'
+import {
+  GridComponent,
+  TooltipComponent,
+  MarkPointComponent,
+  MarkLineComponent,
+} from 'echarts/components'
+import VChart from 'vue-echarts'
 import materialsApi from '@/api/materials'
+import materialPricesApi from '@/api/materialPrices'
+import MaterialEditDialog from '@/components/MaterialEditDialog.vue'
+
+// 注册 ECharts 组件
+use([
+  CanvasRenderer,
+  LineChart,
+  GridComponent,
+  TooltipComponent,
+  MarkPointComponent,
+  MarkLineComponent,
+])
 
 export default {
   name: 'Ingredients',
   components: {
     Plus,
-    Edit,
-    Delete,
     Search,
     Right,
-    ShoppingCart,
-    ScaleToOriginal,
-    InfoFilled,
+    TrendCharts,
+    List,
+    Check,
+    VChart,
+    MaterialEditDialog,
   },
   data() {
     return {
       loading: false,
-      saving: false,
       currentPage: 1,
       pageSize: 20,
       total: 0,
@@ -249,28 +334,136 @@ export default {
       searchKeyword: '',
       // 新增/编辑对话框
       editDialogVisible: false,
-      isEdit: false,
-      editId: null,
-      form: {
-        name: '',
-        purchase_unit: '斤',
-        purchase_price: 0,
-        base_unit: '克',
-        conversion_rate: 500,
+      editMaterial: null, // null = 新增模式，有值 = 编辑模式
+      // 价格历史相关
+      priceHistoryVisible: false,
+      priceHistoryLoading: false,
+      priceHistoryData: [],
+      currentMaterial: null,
+      showAddPriceForm: false,
+      addingPrice: false,
+      newPriceForm: {
+        price: 0,
+        date: '',
+        supplier: '',
+        note: '',
       },
-      formRules: {
-        name: [
-          { required: true, message: '请输入原料名称', trigger: 'blur' },
-          { min: 1, max: 50, message: '名称长度在 1 到 50 个字符', trigger: 'blur' },
-        ],
-        purchase_unit: [
-          { required: true, message: '请选择采购单位', trigger: 'change' },
-        ],
-        base_unit: [
-          { required: true, message: '请选择基础单位', trigger: 'change' },
-        ],
-      },
+      // 供应商选项（从历史记录中自动提取）
+      supplierOptions: ['乐禾', '快驴', '超市'],
     }
+  },
+  computed: {
+    // 价格统计
+    priceStats() {
+      if (this.priceHistoryData.length === 0) {
+        return { min: 0, max: 0, avg: 0 }
+      }
+      const prices = this.priceHistoryData.map((item) => item.price)
+      const min = Math.min(...prices)
+      const max = Math.max(...prices)
+      const avg = prices.reduce((a, b) => a + b, 0) / prices.length
+      return { min, max, avg }
+    },
+    // 图表配置
+    chartOption() {
+      const dates = this.priceHistoryData.map((item) => this.formatDate(item.date))
+      const prices = this.priceHistoryData.map((item) => item.price)
+
+      return {
+        tooltip: {
+          trigger: 'axis',
+          formatter: (params) => {
+            const data = params[0]
+            return `${data.name}<br/>价格: ¥${data.value.toFixed(2)}`
+          },
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          top: '10%',
+          containLabel: true,
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: dates,
+          axisLabel: {
+            fontSize: 11,
+            color: '#64748b',
+          },
+          axisLine: {
+            lineStyle: { color: '#e2e8f0' },
+          },
+        },
+        yAxis: {
+          type: 'value',
+          axisLabel: {
+            fontSize: 11,
+            color: '#64748b',
+            formatter: '¥{value}',
+          },
+          axisLine: { show: false },
+          splitLine: {
+            lineStyle: { color: '#f1f5f9', type: 'dashed' },
+          },
+        },
+        series: [
+          {
+            name: '价格',
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: {
+              color: '#10b981',
+              width: 3,
+            },
+            itemStyle: {
+              color: '#10b981',
+              borderColor: '#fff',
+              borderWidth: 2,
+            },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
+                  { offset: 1, color: 'rgba(16, 185, 129, 0.05)' },
+                ],
+              },
+            },
+            markPoint: {
+              data: [
+                { type: 'max', name: '最高' },
+                { type: 'min', name: '最低' },
+              ],
+              symbolSize: 50,
+              label: {
+                formatter: '¥{c}',
+                fontSize: 10,
+              },
+            },
+            markLine: {
+              data: [{ type: 'average', name: '平均' }],
+              label: {
+                formatter: '平均: ¥{c}',
+                fontSize: 10,
+              },
+              lineStyle: {
+                color: '#f59e0b',
+                type: 'dashed',
+              },
+            },
+            data: prices,
+          },
+        ],
+      }
+    },
   },
   mounted() {
     this.loadData()
@@ -328,83 +521,22 @@ export default {
     },
 
     openAddDialog() {
-      this.isEdit = false
-      this.editId = null
-      this.form = {
-        name: '',
-        purchase_unit: '斤',
-        purchase_price: 0,
-        base_unit: '克',
-        conversion_rate: 500,
-      }
+      this.editMaterial = null
       this.editDialogVisible = true
     },
 
     openEditDialog(row) {
-      this.isEdit = true
-      this.editId = row.id
-      this.form = {
-        name: row.name || '',
-        purchase_unit: row.purchase_unit || row.unit || '斤',
-        purchase_price: row.purchase_price || row.price || 0,
-        base_unit: row.base_unit || '克',
-        conversion_rate: row.conversion_rate || 500,
-      }
+      this.editMaterial = row
       this.editDialogVisible = true
-    },
-
-    resetForm() {
-      this.$refs.formRef?.resetFields()
-    },
-
-    async handleSave() {
-      try {
-        await this.$refs.formRef.validate()
-      } catch {
-        return
-      }
-
-      this.saving = true
-      try {
-        const data = {
-          name: this.form.name.trim(),
-          purchase_unit: this.form.purchase_unit || '斤',
-          purchase_price: this.form.purchase_price || 0,
-          base_unit: this.form.base_unit || '克',
-          conversion_rate: this.form.conversion_rate || 500,
-          unit: this.form.base_unit || '克',
-          price: this.form.purchase_price || 0,
-        }
-
-        if (this.isEdit) {
-          await materialsApi.update(this.editId, data)
-          ElMessage.success('原料修改成功！')
-        } else {
-          await materialsApi.create(data)
-          ElMessage.success('原料添加成功！')
-        }
-
-        this.editDialogVisible = false
-        this.loadData()
-      } catch (error) {
-        console.error('保存原料失败:', error)
-        ElMessage.error('保存失败，请重试')
-      } finally {
-        this.saving = false
-      }
     },
 
     async handleDelete(row) {
       try {
-        await ElMessageBox.confirm(
-          `确定要删除原料"${row.name}"吗？`,
-          '删除确认',
-          {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning',
-          }
-        )
+        await ElMessageBox.confirm(`确定要删除原料"${row.name}"吗？`, '删除确认', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        })
 
         this.loading = true
         await materialsApi.delete(row.id)
@@ -418,6 +550,111 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+
+    // 价格历史相关方法
+    async openPriceHistory(row) {
+      this.currentMaterial = row
+      this.priceHistoryVisible = true
+      this.showAddPriceForm = false
+      this.resetNewPriceForm()
+      await this.loadPriceHistory()
+    },
+
+    async loadPriceHistory() {
+      if (!this.currentMaterial) return
+
+      this.priceHistoryLoading = true
+      try {
+        const result = await materialPricesApi.getAll(this.currentMaterial.id)
+        this.priceHistoryData = result
+        this.updateSupplierOptions()
+      } catch (error) {
+        console.error('加载价格历史失败:', error)
+        ElMessage.error('加载价格历史失败')
+      } finally {
+        this.priceHistoryLoading = false
+      }
+    },
+
+    resetNewPriceForm() {
+      this.newPriceForm = {
+        price: this.currentMaterial?.purchase_price || 0,
+        date: new Date().toISOString().split('T')[0],
+        supplier: '',
+        note: '',
+      }
+    },
+
+    // 从历史记录中提取供应商选项
+    updateSupplierOptions() {
+      const defaultOptions = ['乐禾', '快驴', '超市']
+      const fromHistory = this.priceHistoryData
+        .map((item) => item.supplier)
+        .filter((s) => s && !defaultOptions.includes(s))
+      // 合并去重
+      this.supplierOptions = [...new Set([...defaultOptions, ...fromHistory])]
+    },
+
+    async handleAddPrice() {
+      // 显式检查 null/undefined，允许价格为 0
+      if (
+        this.newPriceForm.price === null ||
+        this.newPriceForm.price === undefined ||
+        this.newPriceForm.price === ''
+      ) {
+        ElMessage.warning('请输入价格')
+        return
+      }
+      if (!this.newPriceForm.date) {
+        ElMessage.warning('请选择日期')
+        return
+      }
+
+      this.addingPrice = true
+      try {
+        await materialPricesApi.create({
+          material: this.currentMaterial.id,
+          price: this.newPriceForm.price,
+          date: this.newPriceForm.date,
+          supplier: this.newPriceForm.supplier,
+          note: this.newPriceForm.note,
+        })
+        ElMessage.success('价格记录添加成功')
+        this.showAddPriceForm = false
+        this.resetNewPriceForm()
+        await this.loadPriceHistory()
+      } catch (error) {
+        console.error('添加价格记录失败:', error)
+        ElMessage.error('添加失败')
+      } finally {
+        this.addingPrice = false
+      }
+    },
+
+    async handleDeletePrice(row) {
+      try {
+        await ElMessageBox.confirm('确定要删除这条价格记录吗？', '删除确认', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        })
+
+        await materialPricesApi.delete(row.id)
+        ElMessage.success('删除成功')
+        await this.loadPriceHistory()
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('删除价格记录失败:', error)
+          ElMessage.error('删除失败')
+        }
+      }
+    },
+
+    formatDate(date) {
+      if (!date) return '-'
+      const d = new Date(date)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     },
   },
 }
@@ -610,31 +847,18 @@ export default {
   color: #dc2626;
 }
 
-/* 编辑对话框 */
-.edit-dialog :deep(.el-dialog__header) {
-  border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 16px;
+.history-btn {
+  background-color: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #6366f1;
+  min-width: 40px;
+  padding: 8px 10px;
 }
 
-.edit-dialog :deep(.el-divider__text) {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.conversion-preview {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%);
-  border-radius: 8px;
-  color: #10b981;
-  font-size: 14px;
-  font-weight: 500;
+.history-btn:hover {
+  background-color: rgba(99, 102, 241, 0.2);
+  border-color: #6366f1;
+  color: #4f46e5;
 }
 
 /* ================================
@@ -653,11 +877,6 @@ export default {
 
   .table-card :deep(.el-card__body) {
     padding: 16px;
-  }
-
-  .edit-dialog :deep(.el-dialog) {
-    width: 90% !important;
-    max-width: 520px;
   }
 }
 
@@ -723,23 +942,6 @@ export default {
   .pagination-wrap :deep(.el-pagination__sizes),
   .pagination-wrap :deep(.el-pagination__jump) {
     display: none;
-  }
-
-  /* 对话框 */
-  .edit-dialog :deep(.el-dialog) {
-    width: 92% !important;
-    max-width: 480px;
-    margin: 5vh auto !important;
-  }
-
-  .edit-dialog :deep(.el-dialog__body) {
-    padding: 16px 20px;
-  }
-
-  /* 对话框表单两列变一列 */
-  .edit-dialog :deep(.el-col-12) {
-    max-width: 100%;
-    flex: 0 0 100%;
   }
 }
 
@@ -863,59 +1065,6 @@ export default {
     min-width: 28px;
     height: 28px;
   }
-
-  /* 对话框 */
-  .edit-dialog :deep(.el-dialog) {
-    width: 95% !important;
-    margin: 3vh auto !important;
-    border-radius: 12px;
-  }
-
-  .edit-dialog :deep(.el-dialog__header) {
-    padding: 14px 16px 12px;
-  }
-
-  .edit-dialog :deep(.el-dialog__title) {
-    font-size: 16px;
-  }
-
-  .edit-dialog :deep(.el-dialog__body) {
-    padding: 12px 16px;
-  }
-
-  .edit-dialog :deep(.el-dialog__footer) {
-    padding: 12px 16px 16px;
-  }
-
-  .edit-dialog :deep(.el-form-item) {
-    margin-bottom: 14px;
-  }
-
-  .edit-dialog :deep(.el-form-item__label) {
-    font-size: 13px;
-    padding-bottom: 4px;
-  }
-
-  .edit-dialog :deep(.el-divider) {
-    margin: 16px 0;
-  }
-
-  .edit-dialog :deep(.el-divider__text) {
-    font-size: 12px;
-    padding: 0 8px;
-  }
-
-  .conversion-preview {
-    padding: 10px 12px;
-    font-size: 13px;
-    border-radius: 6px;
-  }
-
-  /* 对话框按钮 */
-  .edit-dialog :deep(.el-dialog__footer .el-button) {
-    padding: 10px 16px;
-    font-size: 14px;
-  }
 }
 
 /* 超小屏幕 (<400px) */
@@ -958,38 +1107,251 @@ export default {
     min-width: 24px;
     height: 24px;
   }
+}
 
-  /* 对话框 */
-  .edit-dialog :deep(.el-dialog) {
-    width: 98% !important;
-    margin: 2vh auto !important;
+/* ================================
+   价格历史弹窗样式
+   ================================ */
+.price-history-dialog :deep(.el-dialog__header) {
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 16px;
+}
+
+.price-history-content {
+  min-height: 300px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.section-title .el-button {
+  margin-left: auto;
+}
+
+.chart-section {
+  margin-bottom: 24px;
+}
+
+.chart-container {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-item {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.stat-value.current {
+  color: #10b981;
+}
+
+.stat-value.high {
+  color: #ef4444;
+}
+
+.stat-value.low {
+  color: #3b82f6;
+}
+
+.stat-value.avg {
+  color: #f59e0b;
+}
+
+.history-list-section {
+  margin-top: 20px;
+}
+
+.add-price-form {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.08) 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.add-price-form .form-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed rgba(16, 185, 129, 0.3);
+  font-size: 15px;
+  font-weight: 600;
+  color: #059669;
+}
+
+.add-price-form .form-header .form-icon {
+  font-size: 18px;
+}
+
+.add-price-form :deep(.el-form-item) {
+  margin-bottom: 16px;
+}
+
+.add-price-form :deep(.el-form-item__label) {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  padding-bottom: 6px;
+}
+
+.add-price-form :deep(.el-input__wrapper),
+.add-price-form :deep(.el-input-number) {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.add-price-form :deep(.el-input-number .el-input__wrapper) {
+  padding-left: 11px;
+}
+
+.add-price-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(16, 185, 129, 0.2);
+}
+
+.add-price-form .form-actions .el-button--primary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.add-price-form .form-actions .el-button--primary:hover {
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+}
+
+.price-cell {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.note-cell {
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* 价格历史弹窗响应式 */
+@media (max-width: 768px) {
+  .price-history-dialog :deep(.el-dialog) {
+    width: 95% !important;
+    margin: 5vh auto !important;
   }
 
-  .edit-dialog :deep(.el-dialog__header) {
-    padding: 12px 14px 10px;
+  .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
 
-  .edit-dialog :deep(.el-dialog__body) {
-    padding: 10px 14px;
+  .stat-item {
+    padding: 12px;
   }
 
-  .edit-dialog :deep(.el-dialog__footer) {
-    padding: 10px 14px 14px;
+  .stat-value {
+    font-size: 16px;
   }
 
-  .edit-dialog :deep(.el-form-item) {
-    margin-bottom: 12px;
+  .add-price-form {
+    padding: 16px;
   }
 
-  .conversion-preview {
-    padding: 8px 10px;
-    font-size: 12px;
+  .add-price-form .form-header {
+    font-size: 14px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+  }
+
+  .add-price-form :deep(.el-form-item) {
+    margin-bottom: 14px;
+  }
+
+  .add-price-form .form-actions {
+    justify-content: stretch;
+  }
+
+  .add-price-form .form-actions .el-button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 576px) {
+  .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .stat-item {
+    padding: 10px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .stat-value {
+    font-size: 14px;
+  }
+
+  .section-title {
+    font-size: 14px;
+    flex-wrap: wrap;
     gap: 6px;
   }
 
-  .edit-dialog :deep(.el-dialog__footer .el-button) {
-    padding: 8px 14px;
+  .chart-container {
+    padding: 10px;
+  }
+
+  .add-price-form {
+    padding: 14px;
+  }
+
+  .add-price-form .form-header {
     font-size: 13px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+
+  .add-price-form :deep(.el-form-item) {
+    margin-bottom: 12px;
+  }
+
+  .add-price-form :deep(.el-form-item__label) {
+    font-size: 12px;
+    padding-bottom: 4px;
   }
 }
 </style>

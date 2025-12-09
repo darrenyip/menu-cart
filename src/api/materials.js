@@ -1,4 +1,5 @@
 import pb from './index'
+import materialPricesApi from './materialPrices'
 
 const COLLECTION = 'cart_materials'
 
@@ -52,7 +53,23 @@ export const materialsApi = {
    * @param {object} data 原料数据
    */
   async create(data) {
-    return await pb.collection(COLLECTION).create(data)
+    const result = await pb.collection(COLLECTION).create(data)
+    
+    // 自动记录初始价格
+    if (data.purchase_price) {
+      try {
+        await materialPricesApi.create({
+          material: result.id,
+          price: data.purchase_price,
+          supplier: data.supplier || '',
+          note: '初始价格',
+        })
+      } catch (error) {
+        console.warn('记录初始价格失败:', error)
+      }
+    }
+    
+    return result
   },
 
   /**
@@ -76,9 +93,21 @@ export const materialsApi = {
    * 更新原料
    * @param {string} id 原料ID
    * @param {object} data 更新数据
+   * @param {object} options 选项 { recordPriceChange: true }
    */
-  async update(id, data) {
-    return await pb.collection(COLLECTION).update(id, data)
+  async update(id, data, options = { recordPriceChange: true }) {
+    const result = await pb.collection(COLLECTION).update(id, data)
+    
+    // 自动记录价格变化
+    if (options.recordPriceChange && data.purchase_price !== undefined) {
+      try {
+        await materialPricesApi.recordIfChanged(id, data.purchase_price, data.supplier || '')
+      } catch (error) {
+        console.warn('记录价格变化失败:', error)
+      }
+    }
+    
+    return result
   },
 
   /**
