@@ -4,6 +4,7 @@ const COLLECTION = 'cart_material_prices'
 
 /**
  * 原料价格历史 API
+ * 注意：所有请求都添加 requestKey: null 来禁用 PocketBase 的自动取消功能
  */
 export const materialPricesApi = {
   /**
@@ -16,6 +17,7 @@ export const materialPricesApi = {
     return await pb.collection(COLLECTION).getList(page, perPage, {
       filter: `material = "${materialId}"`,
       sort: '-date,-created',
+      requestKey: null,
     })
   },
 
@@ -27,6 +29,7 @@ export const materialPricesApi = {
     return await pb.collection(COLLECTION).getFullList({
       filter: `material = "${materialId}"`,
       sort: 'date,created',
+      requestKey: null,
     })
   },
 
@@ -39,6 +42,7 @@ export const materialPricesApi = {
       const result = await pb.collection(COLLECTION).getList(1, 1, {
         filter: `material = "${materialId}"`,
         sort: '-date,-created',
+        requestKey: null,
       })
       return result.items[0] || null
     } catch {
@@ -51,13 +55,16 @@ export const materialPricesApi = {
    * @param {object} data 价格数据 { material, price, date, supplier, note }
    */
   async create(data) {
-    return await pb.collection(COLLECTION).create({
-      material: data.material,
-      price: data.price,
-      date: data.date || new Date().toISOString().split('T')[0],
-      supplier: data.supplier || '',
-      note: data.note || '',
-    })
+    return await pb.collection(COLLECTION).create(
+      {
+        material: data.material,
+        price: data.price,
+        date: data.date || new Date().toISOString().split('T')[0],
+        supplier: data.supplier || '',
+        note: data.note || '',
+      },
+      { requestKey: null }
+    )
   },
 
   /**
@@ -87,7 +94,7 @@ export const materialPricesApi = {
    * @param {string} id 记录ID
    */
   async delete(id) {
-    return await pb.collection(COLLECTION).delete(id)
+    return await pb.collection(COLLECTION).delete(id, { requestKey: null })
   },
 
   /**
@@ -96,7 +103,7 @@ export const materialPricesApi = {
    * @param {object} data 更新数据
    */
   async update(id, data) {
-    return await pb.collection(COLLECTION).update(id, data)
+    return await pb.collection(COLLECTION).update(id, data, { requestKey: null })
   },
 }
 

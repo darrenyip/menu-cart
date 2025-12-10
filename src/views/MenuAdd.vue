@@ -1021,12 +1021,33 @@ export default {
       // 开始保存
       this.saving = true
 
+      // 用于追踪当前步骤和收集错误
+      let currentStep = ''
+      const errors = [] // 非致命错误（如价格更新失败）
+      const criticalErrors = [] // 致命错误（如原料创建失败），将阻止菜单保存
+
+      // 调试信息：显示当前环境
+      console.log('====== 开始保存菜单 ======')
+      console.log('当前环境:', import.meta.env.MODE)
+      console.log('菜单名称:', this.menuForm.name)
+      console.log('菜品数量:', this.dishList.length)
+
       try {
         // 用于缓存已创建的原料，避免重复创建
         const materialCache = new Map()
 
         // 先获取原料库中已存在的所有原料，建立名称到ID的映射
-        const existingMaterials = await materialsApi.getAll()
+        currentStep = '加载原料库'
+        console.log('步骤:', currentStep)
+        let existingMaterials
+        try {
+          existingMaterials = await materialsApi.getAll()
+          console.log('原料库加载成功，数量:', existingMaterials.length)
+        } catch (error) {
+          console.error('加载原料库失败:', error)
+          throw new Error(`加载原料库失败: ${error.message || error}`)
+        }
+
         const existingMaterialMap = new Map()
         for (const material of existingMaterials) {
           // 以原料名称为 key（忽略单位差异，同名原料视为同一个）
@@ -1034,6 +1055,7 @@ export default {
         }
 
         // 第一步：处理所有原料，确保都存入原料库
+        currentStep = '同步原料'
         for (const dish of this.dishList) {
           for (const ing of dish.ingredients) {
             if (!ing.name?.trim() || !ing.quantity) continue
@@ -1059,7 +1081,7 @@ export default {
                   }
                   console.log(`已更新原料「${ing.name}」的价格: ¥${ing.price}`)
                 } catch (error) {
-                  console.error('更新原料价格失败:', ing.name, error)
+                  errors.push(`更新原料「${ing.name}」价格失败: ${error.message || error}`)
                 }
               }
               continue
@@ -1104,12 +1126,19 @@ export default {
                 conversion_rate: 500,
               })
             } catch (error) {
-              console.error('创建原料失败:', ing.name, error)
+              // 原料创建失败是致命错误，会导致菜单数据不完整
+              criticalErrors.push(`创建原料「${ing.name}」失败: ${error.message || error}`)
             }
           }
         }
 
+        // 检查是否有原料创建失败
+        if (criticalErrors.length > 0) {
+          throw new Error(`原料同步失败，无法保存菜单。\n${criticalErrors.join('\n')}`)
+        }
+
         // 第二步：处理其他原料采购，同步到原料库
+        currentStep = '同步采购原料'
         for (const item of this.extraPurchases) {
           if (!item.name?.trim() || !item.quantity) continue
 
@@ -1156,11 +1185,18 @@ export default {
               unit: '克',
             })
           } catch (error) {
-            console.error('创建原料失败:', item.name, error)
+            // 采购原料创建失败是致命错误
+            criticalErrors.push(`创建采购原料「${item.name}」失败: ${error.message || error}`)
           }
         }
 
+        // 检查是否有采购原料创建失败
+        if (criticalErrors.length > 0) {
+          throw new Error(`采购原料同步失败，无法保存菜单。\n${criticalErrors.join('\n')}`)
+        }
+
         // 第三步：处理所有菜品，同步到菜谱库
+        currentStep = '同步菜谱'
         for (const dish of this.dishList) {
           if (!dish.name?.trim()) continue
 
@@ -1187,7 +1223,7 @@ export default {
               )
               console.log(`菜谱「${dish.name}」已同步更新`)
             } catch (error) {
-              console.error('更新菜谱失败:', dish.name, error)
+              errors.push(`更新菜谱「${dish.name}」失败: ${error.message || error}`)
             }
           } else {
             // 创建新菜谱到菜谱库（包含分类信息）
@@ -1210,12 +1246,13 @@ export default {
                 ingredients: recipeMaterials,
               })
             } catch (error) {
-              console.error('创建菜谱失败:', dish.name, error)
+              errors.push(`创建菜谱「${dish.name}」失败: ${error.message || error}`)
             }
           }
         }
 
         // 第四步：准备最终的菜品数据
+        currentStep = '准备菜单数据'
         const dishes = this.dishList.map((dish) => ({
           name: dish.name,
           recipeId: dish.recipeId || null,
@@ -1242,25 +1279,42 @@ export default {
           }))
 
         // 第六步：创建或更新菜单
+        currentStep = '保存菜单'
+        console.log('步骤:', currentStep)
+        console.log('菜品数据:', JSON.stringify(dishes, null, 2))
+        console.log('额外采购:', JSON.stringify(extraPurchases, null, 2))
+
         if (this.isEdit) {
-          await menusApi.update(
-            this.menuId,
-            {
-              name: this.menuForm.name,
-              extra_purchases: extraPurchases,
-            },
-            dishes,
-          )
-          ElMessage.success('菜单更新成功！')
+          try {
+            console.log('更新菜单 ID:', this.menuId)
+            await menusApi.update(
+              this.menuId,
+              {
+                name: this.menuForm.name,
+                extra_purchases: extraPurchases,
+              },
+              dishes,
+            )
+            console.log('菜单更新成功')
+          } catch (error) {
+            console.error('更新菜单失败:', error)
+            throw new Error(`更新菜单失败: ${error.message || error}`)
+          }
         } else {
-          await menusApi.create(
-            {
-              name: this.menuForm.name,
-              extra_purchases: extraPurchases,
-            },
-            dishes,
-          )
-          ElMessage.success('菜单保存成功！')
+          try {
+            console.log('创建新菜单')
+            await menusApi.create(
+              {
+                name: this.menuForm.name,
+                extra_purchases: extraPurchases,
+              },
+              dishes,
+            )
+            console.log('菜单创建成功')
+          } catch (error) {
+            console.error('创建菜单失败:', error)
+            throw new Error(`创建菜单失败: ${error.message || error}`)
+          }
         }
 
         // 提示同步信息
@@ -1269,12 +1323,76 @@ export default {
           console.log(`已同步: ${newMaterialsCount} 个新原料到原料库`)
         }
 
+        // 如果有非致命错误（价格更新、菜谱同步等），显示警告但菜单已成功保存
+        if (errors.length > 0) {
+          console.warn('保存过程中的非致命警告:', errors)
+          ElMessage({
+            type: 'warning',
+            message: `菜单已保存！但有 ${errors.length} 个次要同步问题（不影响菜单数据）`,
+            duration: 5000,
+            showClose: true,
+          })
+        } else {
+          ElMessage.success(this.isEdit ? '菜单更新成功！' : '菜单保存成功！')
+        }
+
         setTimeout(() => {
           this.goBack()
         }, 800)
       } catch (error) {
         console.error('保存菜单失败:', error)
-        ElMessage.error('保存失败，请重试')
+        console.error('失败步骤:', currentStep)
+        console.error('累积错误:', errors)
+
+        // 构建详细的错误信息
+        let errorMessage = `保存失败 [${currentStep}]`
+
+        // 提取错误详情
+        const errorDetail = error.message || String(error) || '未知错误'
+
+        // 检查是否是常见错误类型
+        if (
+          errorDetail.includes('Failed to fetch') ||
+          errorDetail.includes('NetworkError') ||
+          errorDetail.includes('Network request failed')
+        ) {
+          errorMessage = '网络连接失败，请检查网络后重试'
+        } else if (errorDetail.includes('401') || errorDetail.includes('Unauthorized')) {
+          errorMessage = '登录已过期，请重新登录'
+        } else if (errorDetail.includes('403') || errorDetail.includes('Forbidden')) {
+          errorMessage = '没有权限执行此操作'
+        } else if (errorDetail.includes('404')) {
+          errorMessage = '请求的资源不存在'
+        } else if (errorDetail.includes('500') || errorDetail.includes('Internal Server Error')) {
+          errorMessage = '服务器错误，请稍后重试'
+        } else if (errorDetail.includes('timeout') || errorDetail.includes('Timeout')) {
+          errorMessage = '请求超时，请检查网络后重试'
+        } else {
+          // 显示具体错误，截取前100个字符避免过长
+          const shortDetail =
+            errorDetail.length > 100 ? errorDetail.substring(0, 100) + '...' : errorDetail
+          errorMessage = `${currentStep}失败: ${shortDetail}`
+        }
+
+        // 使用更长时间显示的错误提示
+        ElMessage({
+          type: 'error',
+          message: errorMessage,
+          duration: 6000,
+          showClose: true,
+        })
+
+        // 如果有累积的错误，延迟显示
+        if (errors.length > 0) {
+          setTimeout(() => {
+            ElMessage({
+              type: 'warning',
+              message: `其他问题: ${errors[0]}${errors.length > 1 ? ` 等${errors.length}个` : ''}`,
+              duration: 5000,
+              showClose: true,
+            })
+          }, 500)
+        }
       } finally {
         this.saving = false
       }
@@ -1348,7 +1466,7 @@ export default {
     async onMaterialSaved() {
       // 重新加载原料列表以获取最新数据
       await this.loadData()
-      
+
       // 更新当前编辑的原料单位
       const ingredient = this.materialEditDialog.ingredient
       if (ingredient) {

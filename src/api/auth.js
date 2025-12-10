@@ -2,6 +2,7 @@ import pb from './index'
 
 /**
  * 认证 API
+ * 注意：所有请求都添加 requestKey: null 来禁用 PocketBase 的自动取消功能
  */
 export const authApi = {
   /**
@@ -10,7 +11,9 @@ export const authApi = {
    * @param {string} password 密码
    */
   async login(email, password) {
-    const authData = await pb.collection('users').authWithPassword(email, password)
+    const authData = await pb
+      .collection('users')
+      .authWithPassword(email, password, { requestKey: null })
     return authData
   },
 
@@ -47,12 +50,15 @@ export const authApi = {
    * @param {object} data 用户数据
    */
   async register(data) {
-    const user = await pb.collection('users').create({
-      email: data.email,
-      password: data.password,
-      passwordConfirm: data.passwordConfirm,
-      name: data.name || '',
-    })
+    const user = await pb.collection('users').create(
+      {
+        email: data.email,
+        password: data.password,
+        passwordConfirm: data.passwordConfirm,
+        name: data.name || '',
+      },
+      { requestKey: null }
+    )
     return user
   },
 
