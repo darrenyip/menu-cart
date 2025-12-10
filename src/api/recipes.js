@@ -1,11 +1,11 @@
-import pb, { uniqueReq } from './index'
+import pb, { uniqueReq, queueRequest } from './index'
 
 const COLLECTION = 'cart_recipes'
 const MATERIALS_COLLECTION = 'cart_recipe_materials'
 
 /**
  * 菜谱 API
- * 使用 uniqueReq() 为每个请求生成唯一标识，彻底避免请求被自动取消
+ * 使用 uniqueReq() + queueRequest() 确保请求稳定执行
  */
 export const recipesApi = {
   /**
@@ -98,34 +98,37 @@ export const recipesApi = {
    * @param {array} materials 原料列表
    */
   async create(data, materials = []) {
-    // 创建菜谱
-    const recipe = await pb.collection(COLLECTION).create(
-      {
-        name: data.name,
-        category: data.category || '',
-        description: data.description || '',
-      },
-      uniqueReq()
-    )
+    // 使用队列确保请求串行执行
+    return await queueRequest(async () => {
+      // 创建菜谱
+      const recipe = await pb.collection(COLLECTION).create(
+        {
+          name: data.name,
+          category: data.category || '',
+          description: data.description || '',
+        },
+        uniqueReq()
+      )
 
-    // 创建菜谱原料关联
-    if (materials.length > 0) {
-      for (const material of materials) {
-        await pb.collection(MATERIALS_COLLECTION).create(
-          {
-            recipe: recipe.id,
-            material: material.materialId || null,
-            name: material.name,
-            quantity: material.quantity,
-            unit: material.unit || '',
-            remark: material.remark || '',
-          },
-          uniqueReq()
-        )
+      // 创建菜谱原料关联
+      if (materials.length > 0) {
+        for (const material of materials) {
+          await pb.collection(MATERIALS_COLLECTION).create(
+            {
+              recipe: recipe.id,
+              material: material.materialId || null,
+              name: material.name,
+              quantity: material.quantity,
+              unit: material.unit || '',
+              remark: material.remark || '',
+            },
+            uniqueReq()
+          )
+        }
       }
-    }
 
-    return recipe
+      return recipe
+    })
   },
 
   /**
@@ -135,44 +138,47 @@ export const recipesApi = {
    * @param {array} materials 原料列表
    */
   async update(id, data, materials = []) {
-    // 更新菜谱基本信息
-    const recipe = await pb.collection(COLLECTION).update(
-      id,
-      {
-        name: data.name,
-        category: data.category || '',
-        description: data.description || '',
-      },
-      uniqueReq()
-    )
+    // 使用队列确保请求串行执行
+    return await queueRequest(async () => {
+      // 更新菜谱基本信息
+      const recipe = await pb.collection(COLLECTION).update(
+        id,
+        {
+          name: data.name,
+          category: data.category || '',
+          description: data.description || '',
+        },
+        uniqueReq()
+      )
 
-    // 删除旧的原料关联
-    const oldMaterials = await pb.collection(MATERIALS_COLLECTION).getFullList({
-      filter: `recipe = "${id}"`,
-      ...uniqueReq(),
-    })
-    for (const old of oldMaterials) {
-      await pb.collection(MATERIALS_COLLECTION).delete(old.id, uniqueReq())
-    }
-
-    // 创建新的原料关联
-    if (materials.length > 0) {
-      for (const material of materials) {
-        await pb.collection(MATERIALS_COLLECTION).create(
-          {
-            recipe: id,
-            material: material.materialId || null,
-            name: material.name,
-            quantity: material.quantity,
-            unit: material.unit || '',
-            remark: material.remark || '',
-          },
-          uniqueReq()
-        )
+      // 删除旧的原料关联
+      const oldMaterials = await pb.collection(MATERIALS_COLLECTION).getFullList({
+        filter: `recipe = "${id}"`,
+        ...uniqueReq(),
+      })
+      for (const old of oldMaterials) {
+        await pb.collection(MATERIALS_COLLECTION).delete(old.id, uniqueReq())
       }
-    }
 
-    return recipe
+      // 创建新的原料关联
+      if (materials.length > 0) {
+        for (const material of materials) {
+          await pb.collection(MATERIALS_COLLECTION).create(
+            {
+              recipe: id,
+              material: material.materialId || null,
+              name: material.name,
+              quantity: material.quantity,
+              unit: material.unit || '',
+              remark: material.remark || '',
+            },
+            uniqueReq()
+          )
+        }
+      }
+
+      return recipe
+    })
   },
 
   /**
