@@ -1,8 +1,8 @@
-import pb from './index'
+import pb, { uniqueReq } from './index'
 
 /**
  * 认证 API
- * 注意：所有请求都添加 requestKey: null 来禁用 PocketBase 的自动取消功能
+ * 使用 uniqueReq() 为每个请求生成唯一标识，彻底避免请求被自动取消
  */
 export const authApi = {
   /**
@@ -13,7 +13,7 @@ export const authApi = {
   async login(email, password) {
     const authData = await pb
       .collection('users')
-      .authWithPassword(email, password, { requestKey: null })
+      .authWithPassword(email, password, uniqueReq())
     return authData
   },
 
@@ -57,7 +57,7 @@ export const authApi = {
         passwordConfirm: data.passwordConfirm,
         name: data.name || '',
       },
-      { requestKey: null }
+      uniqueReq()
     )
     return user
   },

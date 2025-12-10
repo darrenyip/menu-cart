@@ -1,11 +1,11 @@
-import pb from './index'
+import pb, { uniqueReq } from './index'
 import materialPricesApi from './materialPrices'
 
 const COLLECTION = 'cart_materials'
 
 /**
  * 原料 API
- * 注意：所有请求都添加 requestKey: null 来禁用 PocketBase 的自动取消功能
+ * 使用 uniqueReq() 为每个请求生成唯一标识，彻底避免请求被自动取消
  */
 export const materialsApi = {
   /**
@@ -17,7 +17,7 @@ export const materialsApi = {
   async getList(page = 1, perPage = 20, options = {}) {
     return await pb.collection(COLLECTION).getList(page, perPage, {
       sort: '-created',
-      requestKey: null,
+      ...uniqueReq(),
       ...options,
     })
   },
@@ -28,7 +28,7 @@ export const materialsApi = {
   async getAll() {
     return await pb.collection(COLLECTION).getFullList({
       sort: 'name',
-      requestKey: null,
+      ...uniqueReq(),
     })
   },
 
@@ -40,7 +40,7 @@ export const materialsApi = {
     return await pb.collection(COLLECTION).getFullList({
       filter: `name ~ "${keyword}"`,
       sort: 'name',
-      requestKey: null,
+      ...uniqueReq(),
     })
   },
 
@@ -49,7 +49,7 @@ export const materialsApi = {
    * @param {string} id 原料ID
    */
   async getOne(id) {
-    return await pb.collection(COLLECTION).getOne(id, { requestKey: null })
+    return await pb.collection(COLLECTION).getOne(id, uniqueReq())
   },
 
   /**
@@ -57,7 +57,7 @@ export const materialsApi = {
    * @param {object} data 原料数据
    */
   async create(data) {
-    const result = await pb.collection(COLLECTION).create(data, { requestKey: null })
+    const result = await pb.collection(COLLECTION).create(data, uniqueReq())
     
     // 自动记录初始价格
     if (data.purchase_price) {
@@ -84,7 +84,7 @@ export const materialsApi = {
     const results = []
     for (const item of items) {
       try {
-        const result = await pb.collection(COLLECTION).create(item, { requestKey: null })
+        const result = await pb.collection(COLLECTION).create(item, uniqueReq())
         results.push(result)
       } catch (error) {
         console.error('创建原料失败:', item, error)
@@ -100,7 +100,7 @@ export const materialsApi = {
    * @param {object} options 选项 { recordPriceChange: true }
    */
   async update(id, data, options = { recordPriceChange: true }) {
-    const result = await pb.collection(COLLECTION).update(id, data, { requestKey: null })
+    const result = await pb.collection(COLLECTION).update(id, data, uniqueReq())
     
     // 自动记录价格变化
     if (options.recordPriceChange && data.purchase_price !== undefined) {
@@ -119,7 +119,7 @@ export const materialsApi = {
    * @param {string} id 原料ID
    */
   async delete(id) {
-    return await pb.collection(COLLECTION).delete(id, { requestKey: null })
+    return await pb.collection(COLLECTION).delete(id, uniqueReq())
   },
 }
 

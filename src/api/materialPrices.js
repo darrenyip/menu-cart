@@ -1,10 +1,10 @@
-import pb from './index'
+import pb, { uniqueReq } from './index'
 
 const COLLECTION = 'cart_material_prices'
 
 /**
  * 原料价格历史 API
- * 注意：所有请求都添加 requestKey: null 来禁用 PocketBase 的自动取消功能
+ * 使用 uniqueReq() 为每个请求生成唯一标识，彻底避免请求被自动取消
  */
 export const materialPricesApi = {
   /**
@@ -17,7 +17,7 @@ export const materialPricesApi = {
     return await pb.collection(COLLECTION).getList(page, perPage, {
       filter: `material = "${materialId}"`,
       sort: '-date,-created',
-      requestKey: null,
+      ...uniqueReq(),
     })
   },
 
@@ -29,7 +29,7 @@ export const materialPricesApi = {
     return await pb.collection(COLLECTION).getFullList({
       filter: `material = "${materialId}"`,
       sort: 'date,created',
-      requestKey: null,
+      ...uniqueReq(),
     })
   },
 
@@ -42,7 +42,7 @@ export const materialPricesApi = {
       const result = await pb.collection(COLLECTION).getList(1, 1, {
         filter: `material = "${materialId}"`,
         sort: '-date,-created',
-        requestKey: null,
+        ...uniqueReq(),
       })
       return result.items[0] || null
     } catch {
@@ -63,7 +63,7 @@ export const materialPricesApi = {
         supplier: data.supplier || '',
         note: data.note || '',
       },
-      { requestKey: null }
+      uniqueReq()
     )
   },
 
@@ -94,7 +94,7 @@ export const materialPricesApi = {
    * @param {string} id 记录ID
    */
   async delete(id) {
-    return await pb.collection(COLLECTION).delete(id, { requestKey: null })
+    return await pb.collection(COLLECTION).delete(id, uniqueReq())
   },
 
   /**
@@ -103,7 +103,7 @@ export const materialPricesApi = {
    * @param {object} data 更新数据
    */
   async update(id, data) {
-    return await pb.collection(COLLECTION).update(id, data, { requestKey: null })
+    return await pb.collection(COLLECTION).update(id, data, uniqueReq())
   },
 }
 
