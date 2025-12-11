@@ -23,7 +23,7 @@ let reqCounter = 0
  */
 export function uniqueReq() {
   const key = `r_${++reqCounter}_${Math.random().toString(36).slice(2, 8)}`
-  return { requestKey: key }
+  return { requestKey: null }
 }
 
 /**
