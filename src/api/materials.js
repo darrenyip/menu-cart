@@ -55,10 +55,13 @@ export const materialsApi = {
   /**
    * 创建原料
    * @param {object} data 原料数据
+   * @param {object} reqOptions 请求选项 { requestKey }
    */
-  async create(data) {
-    const result = await pb.collection(COLLECTION).create(data, uniqueReq())
-    
+  async create(data, reqOptions = {}) {
+    // 合并请求选项
+    const options = { ...uniqueReq(), ...reqOptions }
+    const result = await pb.collection(COLLECTION).create(data, options)
+
     // 自动记录初始价格
     if (data.purchase_price) {
       try {
@@ -72,7 +75,7 @@ export const materialsApi = {
         console.warn('记录初始价格失败:', error)
       }
     }
-    
+
     return result
   },
 
@@ -98,10 +101,13 @@ export const materialsApi = {
    * @param {string} id 原料ID
    * @param {object} data 更新数据
    * @param {object} options 选项 { recordPriceChange: true }
+   * @param {object} reqOptions 请求选项 { requestKey }
    */
-  async update(id, data, options = { recordPriceChange: true }) {
-    const result = await pb.collection(COLLECTION).update(id, data, uniqueReq())
-    
+  async update(id, data, options = { recordPriceChange: true }, reqOptions = {}) {
+    // 合并请求选项
+    const requestOptions = { ...uniqueReq(), ...reqOptions }
+    const result = await pb.collection(COLLECTION).update(id, data, requestOptions)
+
     // 自动记录价格变化
     if (options.recordPriceChange && data.purchase_price !== undefined) {
       try {
@@ -110,7 +116,7 @@ export const materialsApi = {
         console.warn('记录价格变化失败:', error)
       }
     }
-    
+
     return result
   },
 
@@ -124,4 +130,3 @@ export const materialsApi = {
 }
 
 export default materialsApi
-

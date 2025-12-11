@@ -1091,9 +1091,12 @@ export default {
               // 如果用户输入了价格且原料库中没有价格，则更新价格
               if (ing.price && ing.price > 0 && !existingMaterial.purchase_price) {
                 try {
-                  await materialsApi.update(existingMaterial.id, {
-                    purchase_price: ing.price,
-                  })
+                  await materialsApi.update(
+                    existingMaterial.id,
+                    { purchase_price: ing.price },
+                    { recordPriceChange: true },
+                    { requestKey: null }, // iOS Safari 兼容
+                  )
                   // 更新本地缓存
                   existingMaterial.purchase_price = ing.price
                   const localMaterial = this.ingredientList.find(
@@ -1119,20 +1122,23 @@ export default {
 
             // 创建新原料到原料库（使用新的字段结构，包含用户输入的价格）
             try {
-              const newMaterial = await materialsApi.create({
-                name: ing.name,
-                // 基础单位（配菜用）
-                base_unit: ing.unit || '克',
-                // 采购单位（默认斤）
-                purchase_unit: '斤',
-                // 使用用户输入的价格
-                purchase_price: ing.price || 0,
-                // 换算比例（1斤=500克）
-                conversion_rate: 500,
-                // 兼容旧字段
-                unit: ing.unit || '克',
-                price: ing.price || 0,
-              })
+              const newMaterial = await materialsApi.create(
+                {
+                  name: ing.name,
+                  // 基础单位（配菜用）
+                  base_unit: ing.unit || '克',
+                  // 采购单位（默认斤）
+                  purchase_unit: '斤',
+                  // 使用用户输入的价格
+                  purchase_price: ing.price || 0,
+                  // 换算比例（1斤=500克）
+                  conversion_rate: 500,
+                  // 兼容旧字段
+                  unit: ing.unit || '克',
+                  price: ing.price || 0,
+                },
+                { requestKey: null }, // iOS Safari 兼容
+              )
               ing.materialId = newMaterial.id
               materialCache.set(ing.name, newMaterial.id)
               // 同时更新 existingMaterialMap，避免后续重复创建
@@ -1183,18 +1189,21 @@ export default {
 
           // 创建新原料到原料库（额外采购用采购单位）
           try {
-            const newMaterial = await materialsApi.create({
-              name: item.name,
-              // 采购单位（用户输入的单位）
-              purchase_unit: item.unit || '斤',
-              purchase_price: 0,
-              // 基础单位默认克
-              base_unit: '克',
-              conversion_rate: 500,
-              // 兼容旧字段
-              unit: '克',
-              price: 0,
-            })
+            const newMaterial = await materialsApi.create(
+              {
+                name: item.name,
+                // 采购单位（用户输入的单位）
+                purchase_unit: item.unit || '斤',
+                purchase_price: 0,
+                // 基础单位默认克
+                base_unit: '克',
+                conversion_rate: 500,
+                // 兼容旧字段
+                unit: '克',
+                price: 0,
+              },
+              { requestKey: null }, // iOS Safari 兼容
+            )
             item.materialId = newMaterial.id
             materialCache.set(item.name, newMaterial.id)
             // 同时更新 existingMaterialMap，避免后续重复创建
@@ -1243,6 +1252,7 @@ export default {
                   category: dish.category || '',
                 },
                 recipeMaterials,
+                { requestKey: null }, // iOS Safari 兼容
               )
               console.log(`菜谱「${dish.name}」已同步更新`)
             } catch (error) {
@@ -1257,6 +1267,7 @@ export default {
                   category: dish.category || '',
                 },
                 recipeMaterials,
+                { requestKey: null }, // iOS Safari 兼容
               )
               dish.recipeId = newRecipe.id
 

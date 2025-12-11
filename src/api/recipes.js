@@ -96,10 +96,14 @@ export const recipesApi = {
    * 创建菜谱
    * @param {object} data 菜谱数据 { name, category, description }
    * @param {array} materials 原料列表
+   * @param {object} reqOptions 请求选项 { requestKey }
    */
-  async create(data, materials = []) {
+  async create(data, materials = [], reqOptions = {}) {
     // 使用队列确保请求串行执行
     return await queueRequest(async () => {
+      // 合并请求选项
+      const options = { ...uniqueReq(), ...reqOptions }
+
       // 创建菜谱
       const recipe = await pb.collection(COLLECTION).create(
         {
@@ -107,7 +111,7 @@ export const recipesApi = {
           category: data.category || '',
           description: data.description || '',
         },
-        uniqueReq()
+        options
       )
 
       // 创建菜谱原料关联
@@ -122,7 +126,7 @@ export const recipesApi = {
               unit: material.unit || '',
               remark: material.remark || '',
             },
-            uniqueReq()
+            options
           )
         }
       }
@@ -136,10 +140,14 @@ export const recipesApi = {
    * @param {string} id 菜谱ID
    * @param {object} data 更新数据 { name, category, description }
    * @param {array} materials 原料列表
+   * @param {object} reqOptions 请求选项 { requestKey }
    */
-  async update(id, data, materials = []) {
+  async update(id, data, materials = [], reqOptions = {}) {
     // 使用队列确保请求串行执行
     return await queueRequest(async () => {
+      // 合并请求选项
+      const options = { ...uniqueReq(), ...reqOptions }
+
       // 更新菜谱基本信息
       const recipe = await pb.collection(COLLECTION).update(
         id,
@@ -148,16 +156,16 @@ export const recipesApi = {
           category: data.category || '',
           description: data.description || '',
         },
-        uniqueReq()
+        options
       )
 
       // 删除旧的原料关联
       const oldMaterials = await pb.collection(MATERIALS_COLLECTION).getFullList({
         filter: `recipe = "${id}"`,
-        ...uniqueReq(),
+        ...options,
       })
       for (const old of oldMaterials) {
-        await pb.collection(MATERIALS_COLLECTION).delete(old.id, uniqueReq())
+        await pb.collection(MATERIALS_COLLECTION).delete(old.id, options)
       }
 
       // 创建新的原料关联
@@ -172,7 +180,7 @@ export const recipesApi = {
               unit: material.unit || '',
               remark: material.remark || '',
             },
-            uniqueReq()
+            options
           )
         }
       }
