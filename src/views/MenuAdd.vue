@@ -13,13 +13,7 @@
           <el-button @click="goBack">
             <el-icon><Close /></el-icon>取消
           </el-button>
-          <el-button
-            type="primary"
-            @click="saveMenu"
-            @touchend.prevent="handleTouchSave"
-            :loading="saving"
-            class="save-btn"
-          >
+          <el-button type="primary" @click="saveMenu" :loading="saving">
             <el-icon><Check /></el-icon>保存菜单
           </el-button>
         </div>
@@ -988,35 +982,11 @@ export default {
       // 额外采购使用采购单位，默认斤
     },
 
-    // iOS 触摸事件处理（解决 iOS Safari 点击不响应的问题）
-    handleTouchSave(event) {
-      // 阻止默认行为和事件冒泡，防止触发两次
-      event.preventDefault()
-      event.stopPropagation()
-
-      // 如果已经在保存中，不要重复触发
-      if (this.saving) {
-        console.log('[iOS] 已在保存中，忽略触摸事件')
-        return
-      }
-
-      console.log('[iOS] 触摸保存按钮')
-      // 使用 setTimeout 让 iOS 有时间完成 DOM 更新
-      setTimeout(() => {
-        this.saveMenu()
-      }, 10)
-    },
-
     async saveMenu() {
-      // 防止重复提交（iOS blur/click 事件可能同时触发）
+      // 防止重复提交
       if (this.saving) {
         console.log('已在保存中，忽略重复请求')
         return
-      }
-
-      // iOS Safari 兼容：先让输入框失去焦点，避免事件冲突
-      if (document.activeElement && document.activeElement.blur) {
-        document.activeElement.blur()
       }
 
       // 验证菜单名称
@@ -1054,9 +1024,20 @@ export default {
         }
       }
 
-      // 开始保存
+      // 验证通过，上锁
       this.saving = true
 
+      // iOS Safari 兼容：先让输入框失去焦点
+      if (document.activeElement && document.activeElement.blur) {
+        document.activeElement.blur()
+      }
+
+      // 给 iOS 键盘收起一点时间，防止 UI 重绘打断请求
+      setTimeout(() => this._doSaveMenu(), 100)
+    },
+
+    // 实际执行保存的内部方法
+    async _doSaveMenu() {
       // 用于追踪当前步骤和收集错误
       let currentStep = ''
       const errors = [] // 非致命错误（如价格更新失败）
@@ -1073,11 +1054,6 @@ export default {
       console.log('User Agent:', navigator.userAgent)
       console.log('菜单名称:', this.menuForm.name)
       console.log('菜品数量:', this.dishList.length)
-
-      // iOS 设备显示保存中提示
-      if (isIOSDevice) {
-        ElMessage.info({ message: '正在保存...', duration: 0, showClose: true })
-      }
 
       try {
         // 用于缓存已创建的原料，避免重复创建
@@ -1341,6 +1317,7 @@ export default {
                 extra_purchases: extraPurchases,
               },
               dishes,
+              { requestKey: null }, // iOS Safari 兼容：禁用请求自动取消
             )
             console.log('菜单更新成功')
           } catch (error) {
@@ -1356,6 +1333,7 @@ export default {
                 extra_purchases: extraPurchases,
               },
               dishes,
+              { requestKey: null }, // iOS Safari 兼容：禁用请求自动取消
             )
             console.log('菜单创建成功')
           } catch (error) {
@@ -1369,9 +1347,6 @@ export default {
         if (newMaterialsCount > 0) {
           console.log(`已同步: ${newMaterialsCount} 个新原料到原料库`)
         }
-
-        // 关闭 iOS 的加载提示
-        ElMessage.closeAll()
 
         // 如果有非致命错误（价格更新、菜谱同步等），显示警告但菜单已成功保存
         if (errors.length > 0) {
@@ -1390,9 +1365,6 @@ export default {
           this.goBack()
         }, 800)
       } catch (error) {
-        // 关闭 iOS 的加载提示
-        ElMessage.closeAll()
-
         console.error('保存菜单失败:', error)
         console.error('失败步骤:', currentStep)
         console.error('累积错误:', errors)
@@ -1792,10 +1764,6 @@ export default {
 <style scoped>
 .menu-add-page {
   padding: 0;
-  /* iOS Safari 兼容性修复 */
-  -webkit-overflow-scrolling: touch;
-  /* 确保触摸事件正常传递 */
-  touch-action: pan-y;
 }
 
 /* 页面容器 - 限制最大宽度 */
@@ -1856,22 +1824,6 @@ export default {
 
 .header-actions .el-button--primary:hover {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-}
-
-/* iOS 保存按钮修复 - 确保触摸事件正常响应 */
-.header-actions .save-btn {
-  /* 移除 iOS 300ms 点击延迟 */
-  touch-action: manipulation;
-  /* 确保可点击 */
-  cursor: pointer;
-  /* 防止用户选择文字 */
-  -webkit-user-select: none;
-  user-select: none;
-  /* 确保点击区域覆盖整个按钮 */
-  position: relative;
-  z-index: 10;
-  /* iOS 触摸高亮 */
-  -webkit-tap-highlight-color: rgba(16, 185, 129, 0.2);
 }
 
 /* 按钮文字（用于响应式隐藏） */

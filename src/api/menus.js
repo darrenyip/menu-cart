@@ -88,17 +88,20 @@ export const menusApi = {
    * 创建菜单
    * @param {object} data 菜单数据 { name, extra_purchases }
    * @param {array} dishes 菜品列表
+   * @param {object} options 请求选项 { requestKey }
    */
-  async create(data, dishes = []) {
+  async create(data, dishes = [], options = {}) {
     // 使用队列确保请求串行执行，解决移动端并发问题
     return await queueRequest(async () => {
+      // 合并 options 到每个请求中
+      const reqOptions = { ...uniqueReq(), ...options }
       // 创建菜单（包含额外采购数据）
       const menu = await pb.collection(COLLECTION).create(
         {
           name: data.name,
           extra_purchases: data.extra_purchases || [],
         },
-        uniqueReq()
+        reqOptions
       )
 
       // 创建菜品和原料（串行执行）
@@ -115,7 +118,7 @@ export const menusApi = {
             portions: dish.portions || 1,
             sort: i,
           },
-          uniqueReq()
+          reqOptions
         )
 
         // 创建菜品原料
@@ -130,7 +133,7 @@ export const menusApi = {
                   quantity: ingredient.quantity,
                   unit: ingredient.unit || '',
                 },
-                uniqueReq()
+                reqOptions
               )
             }
           }
@@ -146,10 +149,14 @@ export const menusApi = {
    * @param {string} id 菜单ID
    * @param {object} data 更新数据 { name, extra_purchases }
    * @param {array} dishes 菜品列表
+   * @param {object} options 请求选项 { requestKey }
    */
-  async update(id, data, dishes = []) {
+  async update(id, data, dishes = [], options = {}) {
     // 使用队列确保请求串行执行，解决移动端并发问题
     return await queueRequest(async () => {
+      // 合并 options 到每个请求中
+      const reqOptions = { ...uniqueReq(), ...options }
+
       // 更新菜单基本信息（包含额外采购数据）
       const menu = await pb.collection(COLLECTION).update(
         id,
@@ -157,26 +164,26 @@ export const menusApi = {
           name: data.name,
           extra_purchases: data.extra_purchases || [],
         },
-        uniqueReq()
+        reqOptions
       )
 
       // 删除旧的菜品和原料
       const oldDishes = await pb.collection(DISHES_COLLECTION).getFullList({
         filter: `menu = "${id}"`,
-        ...uniqueReq(),
+        ...reqOptions,
       })
 
       for (const oldDish of oldDishes) {
         // 删除菜品的原料
         const oldMaterials = await pb.collection(DISH_MATERIALS_COLLECTION).getFullList({
           filter: `menu_dish = "${oldDish.id}"`,
-          ...uniqueReq(),
+          ...reqOptions,
         })
         for (const oldMaterial of oldMaterials) {
-          await pb.collection(DISH_MATERIALS_COLLECTION).delete(oldMaterial.id, uniqueReq())
+          await pb.collection(DISH_MATERIALS_COLLECTION).delete(oldMaterial.id, reqOptions)
         }
         // 删除菜品
-        await pb.collection(DISHES_COLLECTION).delete(oldDish.id, uniqueReq())
+        await pb.collection(DISHES_COLLECTION).delete(oldDish.id, reqOptions)
       }
 
       // 创建新的菜品和原料
@@ -192,7 +199,7 @@ export const menusApi = {
             portions: dish.portions || 1,
             sort: i,
           },
-          uniqueReq()
+          reqOptions
         )
 
         if (dish.ingredients && dish.ingredients.length > 0) {
@@ -206,7 +213,7 @@ export const menusApi = {
                   quantity: ingredient.quantity,
                   unit: ingredient.unit || '',
                 },
-                uniqueReq()
+                reqOptions
               )
             }
           }
