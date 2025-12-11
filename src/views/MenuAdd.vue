@@ -983,6 +983,12 @@ export default {
     },
 
     async saveMenu() {
+      // 防止重复提交（iOS blur/click 事件可能同时触发）
+      if (this.saving) {
+        console.log('已在保存中，忽略重复请求')
+        return
+      }
+
       // 验证菜单名称
       if (!this.menuForm.name?.trim()) {
         ElMessage.error('请输入菜单名称')
